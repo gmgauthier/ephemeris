@@ -37,7 +37,7 @@ class MainWindow : public Gtk::Window {
   Gtk::Box toolbar_{Gtk::ORIENTATION_HORIZONTAL, 4};
   Gtk::Box book_{Gtk::ORIENTATION_HORIZONTAL, 0};
   Rings rings_;
-  Gtk::Overlay sheet_;
+  Gtk::EventBox sheet_;
   Gtk::Stack pages_;
   MonthPage month_;
   TodoPage todo_;

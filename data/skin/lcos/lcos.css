@@ -8,16 +8,10 @@ window.ephemeris-window {
   background-color: #F7F5EF;
 }
 
-.ephemeris-sheet {
-  /* Right padding clears the overlaid tabs so Sunday is not under them. */
-  padding: 20px 88px 16px 20px;
-}
-
 .ephemeris-month-head {
   color: #0B1D38;
   font-weight: bold;
   font-size: 16px;
-  padding: 4px 0 10px 4px;
 }
 
 .ephemeris-dow {

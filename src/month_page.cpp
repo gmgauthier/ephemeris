@@ -25,14 +25,19 @@ int monday_index(Glib::Date::Weekday wd)
 MonthPage::MonthPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
-  get_style_context()->add_class("ephemeris-sheet");
   head_.get_style_context()->add_class("ephemeris-month-head");
   head_.set_halign(Gtk::ALIGN_START);
+  head_.set_margin_top(12);
+  head_.set_margin_start(16);
+  head_.set_margin_bottom(8);
   pack_start(head_, Gtk::PACK_SHRINK);
   grid_.set_row_homogeneous(true);
   grid_.set_column_homogeneous(true);
   grid_.set_row_spacing(2);
   grid_.set_column_spacing(2);
+  grid_.set_margin_start(16);
+  grid_.set_margin_end(20);
+  grid_.set_margin_bottom(16);
   pack_start(grid_, Gtk::PACK_EXPAND_WIDGET);
 
   Glib::Date now;

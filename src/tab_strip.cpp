@@ -7,10 +7,9 @@ namespace ephemeris {
 TabStrip::TabStrip() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
 {
   set_valign(Gtk::ALIGN_START);
-  set_halign(Gtk::ALIGN_END);
   set_margin_top(28);
-  set_margin_end(0);
   set_margin_start(0);
+  set_margin_end(4);
   set_spacing(2);
   cal_.set_size_request(72, 48);
   todo_.set_size_request(72, 48);
