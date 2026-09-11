@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-09-11)
 
-**M2 in tree.** To Do list, show-through on the day spread, last binder restored from ini.
+**M3 in tree.** Print Day / Month / To Do (white paper). Ctrl+T Today, PgUp/PgDn turn pages.
 
 ## 1. Locked decisions
 
@@ -33,8 +33,8 @@ Reference window: `brand/ui-reference.svg`
 
 - **M0** — binder window
 - **M1** — XML file + appointments on the day spread
-- **M2** — To Do + show-through (this slice)
-- **M3** — print + keys
+- **M2** — To Do + show-through
+- **M3** — print + keys (this slice)
 - **M4** — chrome polish
 - **M5** — `.deb` + tarball + AppImage, tag `v0.1.0`
 

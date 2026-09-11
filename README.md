@@ -10,7 +10,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M2 in tree.** Appointments, To Do with due dates, show-through on the day page. Last binder restored from `~/.config/ephemeris/ephemeris.ini`.
+**M3 in tree.** Appointments, To Do, print (day / month / list). Ctrl+T today, PgUp/PgDn turn pages.
 
 | Doc | What |
 |---|---|

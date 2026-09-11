@@ -5,12 +5,78 @@
 #include "config.hpp"
 #include "paths.hpp"
 
+#include <cmath>
 #include <iostream>
+#include <memory>
+#include <set>
+
+#include <pango/pangocairo.h>
 
 #include <glibmm/fileutils.h>
 #include <glibmm/miscutils.h>
 
 namespace ephemeris {
+namespace {
+
+void show_line(const Cairo::RefPtr<Cairo::Context>& cr,
+               const Glib::RefPtr<Pango::Layout>& layout, double x, double& y,
+               const Glib::ustring& text, bool bold = false)
+{
+  Pango::FontDescription desc;
+  desc.set_family("Serif");
+  desc.set_size((bold ? 12 : 10) * Pango::SCALE);
+  desc.set_weight(bold ? Pango::WEIGHT_BOLD : Pango::WEIGHT_NORMAL);
+  layout->set_font_description(desc);
+  layout->set_text(text);
+  cr->move_to(x, y);
+  pango_cairo_show_layout(cr->cobj(), layout->gobj());
+  int tw = 0, th = 0;
+  layout->get_pixel_size(tw, th);
+  y += th + 2;
+}
+
+struct PrintJob {
+  enum Kind { day, month_page, todos } kind = day;
+  Glib::ustring title;
+  std::vector<Glib::ustring> lines;
+  /* month grid */
+  int year = 0;
+  int month_n = 1;
+  int start_wd = 0; /* 0 = Monday */
+  int dim = 30;
+  std::set<int> busy;
+};
+
+void collect_day_lines(const Binder& b, const Glib::Date& d, std::vector<Glib::ustring>& lines)
+{
+  char buf[64];
+  g_date_strftime(buf, sizeof(buf), "%A %d %B %Y", const_cast<GDate*>(d.gobj()));
+  lines.push_back(Glib::ustring(buf));
+  for (const auto& a : b.for_date(d)) {
+    Glib::ustring row = format_hm(a.start_min);
+    if (a.end_min > a.start_min) {
+      row += "–";
+      row += format_hm(a.end_min);
+    }
+    row += "  ";
+    row += a.text;
+    lines.push_back(row);
+  }
+  const auto due = b.todos_due_on(d);
+  if (!due.empty()) {
+    lines.emplace_back("To Do due this day:");
+    for (const auto& t : due) {
+      Glib::ustring row = t.done ? "[x] " : "[ ] ";
+      if (t.priority > 0)
+        row += Glib::ustring::format(t.priority) + " ";
+      row += t.text;
+      lines.push_back(row);
+    }
+  }
+  lines.emplace_back("");
+}
+
+}  // namespace
 
 MainWindow::MainWindow()
 {
@@ -125,9 +191,11 @@ void MainWindow::build_menu()
   add_item(*file, "Save _As…", sigc::mem_fun(*this, &MainWindow::on_save_as), GDK_KEY_s,
            Gdk::CONTROL_MASK | Gdk::SHIFT_MASK);
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
-  add_item(*file, "_Print…",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("Print")),
-           GDK_KEY_p, Gdk::CONTROL_MASK);
+  add_item(*file, "_Print…", sigc::mem_fun(*this, &MainWindow::on_print), GDK_KEY_p,
+           Gdk::CONTROL_MASK);
+  add_item(*file, "Print _Day…", sigc::mem_fun(*this, &MainWindow::on_print_day));
+  add_item(*file, "Print _Month…", sigc::mem_fun(*this, &MainWindow::on_print_month));
+  add_item(*file, "Print _To Do…", sigc::mem_fun(*this, &MainWindow::on_print_todos));
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*file, "E_xit", sigc::mem_fun(*this, &MainWindow::on_quit));
   add_menu("_File", *file);
@@ -151,6 +219,9 @@ void MainWindow::build_menu()
   });
   section->append(*cal_item_);
   section->append(*todo_item_);
+  section->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
+  add_item(*section, "To_day", sigc::mem_fun(*this, &MainWindow::on_today), GDK_KEY_t,
+           Gdk::CONTROL_MASK);
   add_menu("_Section", *section);
 
   auto* help = Gtk::manage(new Gtk::Menu());
@@ -499,6 +570,209 @@ void MainWindow::restore_session()
 void MainWindow::on_not_yet(const Glib::ustring& feature)
 {
   set_status(feature + " — coming in a later milestone.");
+}
+
+bool MainWindow::in_editable_focus() const
+{
+  auto* focus = get_focus();
+  if (!focus)
+    return false;
+  return dynamic_cast<const Gtk::Entry*>(focus) ||
+         dynamic_cast<const Gtk::TextView*>(focus);
+}
+
+void MainWindow::on_print()
+{
+  const auto name = pages_.get_visible_child_name();
+  if (name == "todo")
+    on_print_todos();
+  else if (name == "spread")
+    on_print_day();
+  else
+    on_print_month();
+}
+
+void MainWindow::on_print_day()
+{
+  auto job = std::make_shared<PrintJob>();
+  job->kind = PrintJob::day;
+  Glib::Date left = spread_.left_date();
+  if (!left.valid())
+    left.set_time_current();
+  Glib::Date right = left;
+  right.add_days(1);
+  collect_day_lines(binder_, left, job->lines);
+  collect_day_lines(binder_, right, job->lines);
+  job->title = binder_.display_name();
+
+  auto op = Gtk::PrintOperation::create();
+  op->set_job_name("Ephemeris day");
+  op->set_embed_page_setup(true);
+  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
+    op->set_n_pages(1);
+  });
+  op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
+    auto cr = ctx->get_cairo_context();
+    cr->set_source_rgb(1, 1, 1);
+    cr->paint();
+    cr->set_source_rgb(0, 0, 0);
+    auto layout = ctx->create_pango_layout();
+    double y = 24;
+    show_line(cr, layout, 36, y, job->title, true);
+    y += 8;
+    for (const auto& line : job->lines)
+      show_line(cr, layout, 36, y, line, false);
+  });
+  try {
+    op->run(Gtk::PRINT_OPERATION_ACTION_PRINT_DIALOG, *this);
+  } catch (const Gtk::PrintError& e) {
+    set_status(Glib::ustring("Print failed: ") + e.what());
+  }
+}
+
+void MainWindow::on_print_month()
+{
+  auto job = std::make_shared<PrintJob>();
+  job->kind = PrintJob::month_page;
+  job->title = month_.title();
+  job->year = static_cast<int>(month_.year());
+  job->month_n = static_cast<int>(month_.month());
+  Glib::Date first(1, month_.month(), month_.year());
+  const int wd = static_cast<int>(first.get_weekday());
+  job->start_wd = (wd + 6) % 7;
+  job->dim = Glib::Date::get_days_in_month(month_.month(), month_.year());
+  job->busy = binder_.days_in_month(month_.month(), month_.year());
+  for (int d = 1; d <= job->dim; ++d) {
+    Glib::Date day(d, month_.month(), month_.year());
+    for (const auto& a : binder_.for_date(day)) {
+      job->lines.push_back(Glib::ustring::format(d) + "  " + format_hm(a.start_min) + "  " +
+                           a.text);
+    }
+  }
+
+  auto op = Gtk::PrintOperation::create();
+  op->set_job_name("Ephemeris month");
+  op->set_embed_page_setup(true);
+  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
+    op->set_n_pages(1);
+  });
+  op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
+    auto cr = ctx->get_cairo_context();
+    const double pw = ctx->get_width();
+    cr->set_source_rgb(1, 1, 1);
+    cr->paint();
+    cr->set_source_rgb(0, 0, 0);
+    auto layout = ctx->create_pango_layout();
+    double y = 24;
+    show_line(cr, layout, 36, y, job->title, true);
+    y += 8;
+    const char* dow[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+    const double grid_x = 36;
+    const double cell_w = (pw - 72) / 7.0;
+    const double cell_h = 32;
+    Pango::FontDescription desc;
+    desc.set_family("Sans");
+    desc.set_size(9 * Pango::SCALE);
+    layout->set_font_description(desc);
+    cr->set_source_rgb(0, 0, 0);
+    for (int i = 0; i < 7; ++i) {
+      layout->set_text(dow[i]);
+      cr->move_to(grid_x + i * cell_w, y);
+      pango_cairo_show_layout(cr->cobj(), layout->gobj());
+    }
+    y += 18;
+    int d = 1;
+    for (int row = 0; row < 6; ++row) {
+      for (int col = 0; col < 7; ++col) {
+        const int idx = row * 7 + col;
+        if (idx < job->start_wd || d > job->dim)
+          continue;
+        const double x = grid_x + col * cell_w;
+        cr->rectangle(x, y, cell_w - 4, cell_h - 4);
+        cr->stroke();
+        layout->set_text(Glib::ustring::format(d));
+        cr->move_to(x + 4, y + 4);
+        pango_cairo_show_layout(cr->cobj(), layout->gobj());
+        if (job->busy.count(d)) {
+          cr->set_line_width(2);
+          cr->move_to(x + 4, y + cell_h - 8);
+          cr->line_to(x + cell_w - 8, y + cell_h - 8);
+          cr->stroke();
+          cr->set_line_width(1);
+        }
+        ++d;
+      }
+      y += cell_h;
+    }
+    y += 12;
+    for (const auto& line : job->lines)
+      show_line(cr, layout, 36, y, line, false);
+  });
+  try {
+    op->run(Gtk::PRINT_OPERATION_ACTION_PRINT_DIALOG, *this);
+  } catch (const Gtk::PrintError& e) {
+    set_status(Glib::ustring("Print failed: ") + e.what());
+  }
+}
+
+void MainWindow::on_print_todos()
+{
+  auto job = std::make_shared<PrintJob>();
+  job->kind = PrintJob::todos;
+  job->title = "To Do — " + binder_.display_name();
+  for (const auto& t : binder_.todos()) {
+    Glib::ustring row = t.done ? "[x] " : "[ ] ";
+    if (t.priority > 0)
+      row += Glib::ustring::format(t.priority) + " ";
+    row += t.text;
+    if (t.has_due) {
+      row += "  ";
+      row += date_iso(t.due);
+    }
+    job->lines.push_back(row);
+  }
+  auto op = Gtk::PrintOperation::create();
+  op->set_job_name("Ephemeris to do");
+  op->set_embed_page_setup(true);
+  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
+    op->set_n_pages(1);
+  });
+  op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
+    auto cr = ctx->get_cairo_context();
+    cr->set_source_rgb(1, 1, 1);
+    cr->paint();
+    cr->set_source_rgb(0, 0, 0);
+    auto layout = ctx->create_pango_layout();
+    double y = 24;
+    show_line(cr, layout, 36, y, job->title, true);
+    y += 8;
+    for (const auto& line : job->lines)
+      show_line(cr, layout, 36, y, line, false);
+  });
+  try {
+    op->run(Gtk::PRINT_OPERATION_ACTION_PRINT_DIALOG, *this);
+  } catch (const Gtk::PrintError& e) {
+    set_status(Glib::ustring("Print failed: ") + e.what());
+  }
+}
+
+bool MainWindow::on_key_press_event(GdkEventKey* event)
+{
+  if (!event)
+    return Gtk::Window::on_key_press_event(event);
+  if (event->keyval == GDK_KEY_Page_Up || event->keyval == GDK_KEY_KP_Page_Up) {
+    if (!in_editable_focus()) {
+      on_prev();
+      return true;
+    }
+  }
+  if (event->keyval == GDK_KEY_Page_Down || event->keyval == GDK_KEY_KP_Page_Down) {
+    if (!in_editable_focus()) {
+      on_next();
+      return true;
+    }
+  }
+  return Gtk::Window::on_key_press_event(event);
 }
 
 }  // namespace ephemeris

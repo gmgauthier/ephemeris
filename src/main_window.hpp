@@ -50,6 +50,11 @@ class MainWindow : public Gtk::Window {
   void on_binder_changed();
   void persist();
   void restore_session();
+  void on_print();
+  void on_print_day();
+  void on_print_month();
+  void on_print_todos();
+  bool in_editable_focus() const;
 
   Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label,
                           const sigc::slot<void()>& slot, guint key = 0,
@@ -57,6 +62,7 @@ class MainWindow : public Gtk::Window {
 
  protected:
   bool on_delete_event(GdkEventAny* event) override;
+  bool on_key_press_event(GdkEventKey* event) override;
 
   Gtk::Box root_{Gtk::ORIENTATION_VERTICAL, 0};
   Gtk::MenuBar menubar_;
