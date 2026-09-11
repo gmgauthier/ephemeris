@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-09-11)
 
-**M3 in tree.** Print Day / Month / To Do (white paper). Ctrl+T Today, PgUp/PgDn turn pages.
+**M4 in tree.** Lined day pages, column rule, slot hover, To Do rules, Clearlooks selection.
 
 ## 1. Locked decisions
 
@@ -34,8 +34,8 @@ Reference window: `brand/ui-reference.svg`
 - **M0** — binder window
 - **M1** — XML file + appointments on the day spread
 - **M2** — To Do + show-through
-- **M3** — print + keys (this slice)
-- **M4** — chrome polish
+- **M3** — print + keys
+- **M4** — chrome polish (this slice)
 - **M5** — `.deb` + tarball + AppImage, tag `v0.1.0`
 
 ## 3. Traps

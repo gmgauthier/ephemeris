@@ -69,14 +69,17 @@ void DaySpread::refresh()
     cols_.remove(*ch);
   Glib::Date right = left_;
   right.add_days(1);
-  cols_.pack_start(*build_day(left_), Gtk::PACK_EXPAND_WIDGET);
-  cols_.pack_start(*build_day(right), Gtk::PACK_EXPAND_WIDGET);
+  cols_.pack_start(*build_day(left_, false), Gtk::PACK_EXPAND_WIDGET);
+  cols_.pack_start(*build_day(right, true), Gtk::PACK_EXPAND_WIDGET);
   cols_.show_all();
 }
 
-Gtk::Widget* DaySpread::build_day(const Glib::Date& date)
+Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
 {
   auto* col = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4));
+  col->get_style_context()->add_class("ephemeris-day-col");
+  if (right)
+    col->get_style_context()->add_class("ephemeris-day-col-right");
   char buf[64];
   g_date_strftime(buf, sizeof(buf), "%A %d %B", const_cast<GDate*>(date.gobj()));
   auto* head = Gtk::manage(new Gtk::Label());
@@ -131,7 +134,7 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date)
       auto* thru = Gtk::manage(new Gtk::Label());
       thru->set_markup("<b>To Do due today</b>");
       thru->set_halign(Gtk::ALIGN_START);
-      thru->set_margin_top(8);
+      thru->get_style_context()->add_class("ephemeris-showthrough");
       col->pack_start(*thru, Gtk::PACK_SHRINK);
       for (const Todo& t : due) {
         Glib::ustring line = t.done ? "☑ " : "☐ ";

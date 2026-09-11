@@ -8,10 +8,18 @@ window.ephemeris-window {
   background-color: #F7F5EF;
 }
 
+.ephemeris-page scrolledwindow,
+.ephemeris-page viewport,
+.ephemeris-page list {
+  background-color: #F7F5EF;
+}
+
 .ephemeris-month-head {
   color: #0B1D38;
   font-weight: bold;
   font-size: 16px;
+  border-bottom: 1px solid #C4C0B4;
+  padding-bottom: 4px;
 }
 
 .ephemeris-dow {
@@ -26,7 +34,7 @@ window.ephemeris-window {
 }
 
 .ephemeris-day:hover {
-  background-color: #E8E4D8;
+  background-color: #D4E4F7;
 }
 
 .ephemeris-day-today,
@@ -48,15 +56,36 @@ window.ephemeris-window {
   border-bottom: 4px solid #E8F2FF;
 }
 
+.ephemeris-day-col-right {
+  border-left: 1px solid #C4C0B4;
+  padding-left: 12px;
+}
+
 .ephemeris-slot {
   background-color: #F7F5EF;
   color: #1A1A1A;
-  padding: 3px 6px;
-  border-bottom: 1px solid #E0DCD0;
+  padding: 4px 8px 4px 10px;
+  border-bottom: 1px solid #D4CFC4;
+  border-left: 2px solid #C45C4A;
+}
+
+.ephemeris-slot:hover {
+  background-color: #E8E4D8;
 }
 
 .ephemeris-slot-busy {
   background-color: #E8F2FF;
+}
+
+.ephemeris-slot-busy:hover {
+  background-color: #D4E4F7;
+}
+
+.ephemeris-showthrough {
+  border-top: 1px solid #C4C0B4;
+  padding-top: 8px;
+  margin-top: 8px;
+  color: #0B1D38;
 }
 
 .ephemeris-tab {
@@ -82,6 +111,13 @@ window.ephemeris-window {
 }
 
 .ephemeris-todo-line {
-  color: #888888;
+  color: #1A1A1A;
   padding: 6px 8px;
+  border-bottom: 1px solid #D4CFC4;
+}
+
+entry selection,
+textview text selection {
+  background-color: #3D6AA8;
+  color: #FFFFFF;
 }

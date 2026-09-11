@@ -10,7 +10,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M3 in tree.** Appointments, To Do, print (day / month / list). Ctrl+T today, PgUp/PgDn turn pages.
+**M4 in tree.** Paper day pages (ruled slots, two-day gutter), To Do lines, print. Packaging is M5.
 
 | Doc | What |
 |---|---|

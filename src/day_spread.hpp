@@ -25,7 +25,7 @@ class DaySpread : public Gtk::Box {
   sigc::signal<void>& signal_goto_todo() { return signal_goto_todo_; }
 
  private:
-  Gtk::Widget* build_day(const Glib::Date& date);
+  Gtk::Widget* build_day(const Glib::Date& date, bool right);
   void edit_slot(const Glib::Date& date, int start_min, int appt_id);
 
   Binder* binder_ = nullptr;
