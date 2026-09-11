@@ -19,4 +19,6 @@
   <text x="640" y="122" font-family="Tahoma" font-size="12" fill="#0B1D38">Calendar</text>
   <rect x="628" y="156" width="72" height="72" fill="#6B2D3C"/>
   <text x="644" y="198" font-family="Tahoma" font-size="12" fill="#E8F2FF">To Do</text>
+  <rect x="628" y="232" width="72" height="72" fill="#1B4D3E"/>
+  <text x="636" y="274" font-family="Tahoma" font-size="12" fill="#E8F2FF">Contacts</text>
 </svg>

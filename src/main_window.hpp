@@ -3,6 +3,7 @@
 #pragma once
 
 #include "binder.hpp"
+#include "contacts_page.hpp"
 #include "day_spread.hpp"
 #include "month_page.hpp"
 #include "rings.hpp"
@@ -54,6 +55,7 @@ class MainWindow : public Gtk::Window {
   void on_print_day();
   void on_print_month();
   void on_print_todos();
+  void on_print_contacts();
   bool in_editable_focus() const;
 
   Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label,
@@ -76,6 +78,7 @@ class MainWindow : public Gtk::Window {
   MonthPage month_;
   DaySpread spread_;
   TodoPage todo_;
+  ContactsPage contacts_;
   TabStrip tabs_;
   Gtk::Statusbar status_;
   guint status_ctx_ = 0;
@@ -83,6 +86,7 @@ class MainWindow : public Gtk::Window {
   Gtk::RadioButtonGroup section_group_;
   Gtk::RadioMenuItem* cal_item_ = nullptr;
   Gtk::RadioMenuItem* todo_item_ = nullptr;
+  Gtk::RadioMenuItem* contacts_item_ = nullptr;
   bool suppress_section_ = false;
   enum class CalView { month, spread };
   CalView cal_view_ = CalView::month;

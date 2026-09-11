@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Unlicense */
 
 #include "day_spread.hpp"
+#include "mention.hpp"
 
 #include <glib.h>
 
@@ -196,9 +197,10 @@ void DaySpread::edit_slot(const Glib::Date& date, int start_min, int appt_id)
   box->set_border_width(10);
   box->set_spacing(8);
   auto* text = Gtk::manage(new Gtk::Entry());
-  text->set_placeholder_text("What");
+  text->set_placeholder_text("What — type @ to mention a contact");
   text->set_text(edited.text);
   text->set_activates_default(true);
+  attach_mentions(*text, binder_);
   box->pack_start(*Gtk::manage(new Gtk::Label("Text", Gtk::ALIGN_START)), Gtk::PACK_SHRINK);
   box->pack_start(*text, Gtk::PACK_SHRINK);
   auto* start = Gtk::manage(new Gtk::ComboBoxText());

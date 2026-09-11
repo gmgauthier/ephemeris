@@ -105,6 +105,10 @@ window.ephemeris-window {
   background-color: #6B2D3C;
 }
 
+.ephemeris-tab-contacts {
+  background-color: #1B4D3E;
+}
+
 .ephemeris-tab-active {
   background-color: #F7F5EF;
   color: #0B1D38;
@@ -114,6 +118,33 @@ window.ephemeris-window {
   color: #1A1A1A;
   padding: 6px 8px;
   border-bottom: 1px solid #D4CFC4;
+}
+
+.ephemeris-contact-line {
+  color: #1A1A1A;
+  padding: 6px 8px;
+  border-bottom: 1px solid #D4CFC4;
+}
+
+.ephemeris-az {
+  border-bottom: 1px solid #C4C0B4;
+  padding-bottom: 2px;
+}
+
+.ephemeris-az-letter {
+  padding: 1px 2px;
+  font-weight: bold;
+  font-size: 11px;
+  color: #1B4D3E;
+}
+
+.ephemeris-az-letter:hover {
+  background-color: #E8E4D8;
+}
+
+.ephemeris-az-empty {
+  color: #A0A0A0;
+  font-weight: normal;
 }
 
 entry selection,

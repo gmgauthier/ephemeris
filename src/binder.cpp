@@ -39,6 +39,41 @@ std::string xml_escape(const Glib::ustring& in)
   return out;
 }
 
+std::string xml_escape_attr(const Glib::ustring& in)
+{
+  std::string out;
+  out.reserve(in.bytes() + 8);
+  for (const char c : in.raw()) {
+    switch (c) {
+      case '&':
+        out += "&amp;";
+        break;
+      case '<':
+        out += "&lt;";
+        break;
+      case '>':
+        out += "&gt;";
+        break;
+      case '"':
+        out += "&quot;";
+        break;
+      case '\'':
+        out += "&apos;";
+        break;
+      default:
+        out += c;
+        break;
+    }
+  }
+  return out;
+}
+
+void clamp_notes(Contact& c)
+{
+  if (c.notes.size() > static_cast<Glib::ustring::size_type>(kContactNotesMax))
+    c.notes = c.notes.substr(0, kContactNotesMax);
+}
+
 std::string node_name(xmlNode* n)
 {
   if (!n || !n->name)
@@ -122,6 +157,39 @@ bool date_from_iso(const std::string& s, Glib::Date& out)
   return out.valid();
 }
 
+Glib::ustring Contact::display_name() const
+{
+  if (!first.empty() && !last.empty())
+    return first + " " + last;
+  if (!last.empty())
+    return last;
+  if (!first.empty())
+    return first;
+  return "Unnamed";
+}
+
+Glib::ustring Contact::sort_label() const
+{
+  if (!last.empty() && !first.empty())
+    return last + ", " + first;
+  if (!last.empty())
+    return last;
+  if (!first.empty())
+    return first;
+  return "Unnamed";
+}
+
+gunichar Contact::last_initial() const
+{
+  const Glib::ustring& src = last.empty() ? first : last;
+  if (src.empty())
+    return 0;
+  const gunichar ch = g_unichar_toupper(src[0]);
+  if (ch >= 'A' && ch <= 'Z')
+    return ch;
+  return 0;
+}
+
 std::string Binder::display_name() const
 {
   if (path_.empty())
@@ -133,10 +201,12 @@ void Binder::close()
 {
   appts_.clear();
   todos_.clear();
+  contacts_.clear();
   path_.clear();
   error_.clear();
   next_id_ = 1;
   next_todo_id_ = 1;
+  next_contact_id_ = 1;
   open_ = false;
   dirty_ = false;
 }
@@ -316,6 +386,71 @@ bool Binder::remove_todo(int id)
   return true;
 }
 
+bool contact_less(const Contact& a, const Contact& b)
+{
+  const Glib::ustring la = a.last.casefold();
+  const Glib::ustring lb = b.last.casefold();
+  if (la != lb)
+    return la < lb;
+  const Glib::ustring fa = a.first.casefold();
+  const Glib::ustring fb = b.first.casefold();
+  if (fa != fb)
+    return fa < fb;
+  return a.id < b.id;
+}
+
+std::vector<Contact> Binder::contacts() const
+{
+  std::vector<Contact> out = contacts_;
+  std::sort(out.begin(), out.end(), contact_less);
+  return out;
+}
+
+const Contact* Binder::find_contact(int id) const
+{
+  for (const auto& c : contacts_) {
+    if (c.id == id)
+      return &c;
+  }
+  return nullptr;
+}
+
+int Binder::add_contact(const Contact& c)
+{
+  if (!open_)
+    create_new();
+  Contact n = c;
+  clamp_notes(n);
+  n.id = next_contact_id_++;
+  contacts_.push_back(n);
+  dirty_ = true;
+  return n.id;
+}
+
+bool Binder::update_contact(const Contact& c)
+{
+  for (auto& x : contacts_) {
+    if (x.id == c.id) {
+      x = c;
+      clamp_notes(x);
+      dirty_ = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Binder::remove_contact(int id)
+{
+  auto it = std::remove_if(contacts_.begin(), contacts_.end(),
+                           [id](const Contact& c) { return c.id == id; });
+  if (it == contacts_.end())
+    return false;
+  contacts_.erase(it, contacts_.end());
+  dirty_ = true;
+  return true;
+}
+
 bool Binder::write_file(const std::string& path) const
 {
   std::ostringstream os;
@@ -332,6 +467,12 @@ bool Binder::write_file(const std::string& path) const
     if (t.has_due)
       os << " due=\"" << date_iso(t.due) << "\"";
     os << ">" << xml_escape(t.text) << "</todo>\n";
+  }
+  for (const auto& c : contacts_) {
+    os << "  <contact id=\"" << c.id << "\" first=\"" << xml_escape_attr(c.first)
+       << "\" last=\"" << xml_escape_attr(c.last) << "\" phone=\"" << xml_escape_attr(c.phone)
+       << "\" email=\"" << xml_escape_attr(c.email) << "\" timezone=\""
+       << xml_escape_attr(c.timezone) << "\">" << xml_escape(c.notes) << "</contact>\n";
   }
   os << "</ephemeris>\n";
   try {
@@ -391,8 +532,10 @@ bool Binder::open(const std::string& path)
 
   std::vector<Appointment> loaded;
   std::vector<Todo> loaded_todos;
+  std::vector<Contact> loaded_contacts;
   int max_id = 0;
   int max_todo = 0;
+  int max_contact = 0;
   for (xmlNode* n = root->children; n; n = n->next) {
     if (n->type != XML_ELEMENT_NODE)
       continue;
@@ -422,6 +565,21 @@ bool Binder::open(const std::string& path)
       if (t.id > max_todo)
         max_todo = t.id;
       loaded_todos.push_back(std::move(t));
+    } else if (node_name(n) == "contact") {
+      Contact c;
+      const std::string id_s = node_prop(n, "id");
+      if (!id_s.empty())
+        c.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
+      c.first = node_prop(n, "first");
+      c.last = node_prop(n, "last");
+      c.phone = node_prop(n, "phone");
+      c.email = node_prop(n, "email");
+      c.timezone = node_prop(n, "timezone");
+      c.notes = node_text(n);
+      clamp_notes(c);
+      if (c.id > max_contact)
+        max_contact = c.id;
+      loaded_contacts.push_back(std::move(c));
     }
   }
   xmlFreeDoc(doc);
@@ -434,8 +592,13 @@ bool Binder::open(const std::string& path)
     if (t.id < 1)
       t.id = ++max_todo;
   }
+  for (auto& c : loaded_contacts) {
+    if (c.id < 1)
+      c.id = ++max_contact;
+  }
   appts_ = std::move(loaded);
   todos_ = std::move(loaded_todos);
+  contacts_ = std::move(loaded_contacts);
   path_ = path;
   next_id_ = max_id + 1;
   if (next_id_ < 1)
@@ -443,6 +606,9 @@ bool Binder::open(const std::string& path)
   next_todo_id_ = max_todo + 1;
   if (next_todo_id_ < 1)
     next_todo_id_ = 1;
+  next_contact_id_ = max_contact + 1;
+  if (next_contact_id_ < 1)
+    next_contact_id_ = 1;
   open_ = true;
   dirty_ = false;
   return true;

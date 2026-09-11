@@ -36,7 +36,7 @@ void show_line(const Cairo::RefPtr<Cairo::Context>& cr,
 }
 
 struct PrintJob {
-  enum Kind { day, month_page, todos } kind = day;
+  enum Kind { day, month_page, todos, contacts } kind = day;
   Glib::ustring title;
   std::vector<Glib::ustring> lines;
   /* month grid */
@@ -94,14 +94,17 @@ MainWindow::MainWindow()
   binder_.create_new();
   spread_.set_binder(&binder_);
   todo_.set_binder(&binder_);
+  contacts_.set_binder(&binder_);
   spread_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   todo_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
+  contacts_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   spread_.signal_goto_todo().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::show_section), Section::todo));
 
   pages_.add(month_, "month");
   pages_.add(spread_, "spread");
   pages_.add(todo_, "todo");
+  pages_.add(contacts_, "contacts");
   pages_.set_visible_child("month");
   month_.set_hexpand(true);
   month_.set_vexpand(true);
@@ -109,6 +112,8 @@ MainWindow::MainWindow()
   spread_.set_vexpand(true);
   todo_.set_hexpand(true);
   todo_.set_vexpand(true);
+  contacts_.set_hexpand(true);
+  contacts_.set_vexpand(true);
 
   tabs_.signal_section().connect(sigc::mem_fun(*this, &MainWindow::show_section));
   month_.signal_day_chosen().connect(sigc::mem_fun(*this, &MainWindow::on_day));
@@ -196,6 +201,7 @@ void MainWindow::build_menu()
   add_item(*file, "Print _Day…", sigc::mem_fun(*this, &MainWindow::on_print_day));
   add_item(*file, "Print _Month…", sigc::mem_fun(*this, &MainWindow::on_print_month));
   add_item(*file, "Print _To Do…", sigc::mem_fun(*this, &MainWindow::on_print_todos));
+  add_item(*file, "Print _Contacts…", sigc::mem_fun(*this, &MainWindow::on_print_contacts));
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*file, "E_xit", sigc::mem_fun(*this, &MainWindow::on_quit));
   add_menu("_File", *file);
@@ -208,6 +214,7 @@ void MainWindow::build_menu()
   auto* section = Gtk::manage(new Gtk::Menu());
   cal_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "_Calendar", true));
   todo_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "_To Do", true));
+  contacts_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "C_ontacts", true));
   cal_item_->set_active(true);
   cal_item_->signal_activate().connect([this]() {
     if (!suppress_section_ && cal_item_->get_active())
@@ -217,8 +224,13 @@ void MainWindow::build_menu()
     if (!suppress_section_ && todo_item_->get_active())
       show_section(Section::todo);
   });
+  contacts_item_->signal_activate().connect([this]() {
+    if (!suppress_section_ && contacts_item_->get_active())
+      show_section(Section::contacts);
+  });
   section->append(*cal_item_);
   section->append(*todo_item_);
+  section->append(*contacts_item_);
   section->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*section, "To_day", sigc::mem_fun(*this, &MainWindow::on_today), GDK_KEY_t,
            Gdk::CONTROL_MASK);
@@ -297,13 +309,22 @@ void MainWindow::show_section(Section s)
       cal_item_->set_active(true);
     btn_prev_.set_sensitive(true);
     btn_next_.set_sensitive(true);
-  } else {
+  } else if (s == Section::todo) {
     pages_.set_visible_child("todo");
     tabs_.set_section(Section::todo);
     if (todo_item_)
       todo_item_->set_active(true);
     todo_.refresh();
     set_status("To Do");
+    btn_prev_.set_sensitive(false);
+    btn_next_.set_sensitive(false);
+  } else {
+    pages_.set_visible_child("contacts");
+    tabs_.set_section(Section::contacts);
+    if (contacts_item_)
+      contacts_item_->set_active(true);
+    contacts_.refresh();
+    set_status("Contacts");
     btn_prev_.set_sensitive(false);
     btn_next_.set_sensitive(false);
   }
@@ -359,6 +380,7 @@ void MainWindow::on_binder_changed()
   update_title();
   refresh_marks();
   todo_.refresh();
+  contacts_.refresh();
   tabs_.set_open_count(binder_.open_todo_count());
   if (cal_view_ == CalView::spread)
     spread_.refresh();
@@ -456,6 +478,7 @@ void MainWindow::on_new()
   binder_.create_new();
   spread_.set_binder(&binder_);
   todo_.set_binder(&binder_);
+  contacts_.set_binder(&binder_);
   month_.today();
   refresh_marks();
   tabs_.set_open_count(binder_.open_todo_count());
@@ -485,6 +508,7 @@ void MainWindow::on_open()
   }
   spread_.set_binder(&binder_);
   todo_.set_binder(&binder_);
+  contacts_.set_binder(&binder_);
   month_.today();
   refresh_marks();
   tabs_.set_open_count(binder_.open_todo_count());
@@ -535,8 +559,15 @@ void MainWindow::persist()
     settings_.last_path = binder_.path();
   else
     settings_.last_path.clear();
-  settings_.last_section =
-      (pages_.get_visible_child_name() == "todo") ? "todo" : "calendar";
+  {
+    const auto name = pages_.get_visible_child_name();
+    if (name == "todo")
+      settings_.last_section = "todo";
+    else if (name == "contacts")
+      settings_.last_section = "contacts";
+    else
+      settings_.last_section = "calendar";
+  }
   settings_.last_cal = (cal_view_ == CalView::spread) ? "spread" : "month";
   settings_.last_date = date_iso(spread_.left_date());
   settings_.save();
@@ -553,6 +584,7 @@ void MainWindow::restore_session()
   }
   spread_.set_binder(&binder_);
   todo_.set_binder(&binder_);
+  contacts_.set_binder(&binder_);
   Glib::Date d;
   if (!settings_.last_date.empty() && date_from_iso(settings_.last_date, d)) {
     month_.set_month(d.get_month(), d.get_year());
@@ -569,6 +601,8 @@ void MainWindow::restore_session()
     cal_view_ = CalView::month;
   if (settings_.last_section == "todo")
     show_section(Section::todo);
+  else if (settings_.last_section == "contacts")
+    show_section(Section::contacts);
   else
     show_section(Section::calendar);
 }
@@ -592,6 +626,8 @@ void MainWindow::on_print()
   const auto name = pages_.get_visible_child_name();
   if (name == "todo")
     on_print_todos();
+  else if (name == "contacts")
+    on_print_contacts();
   else if (name == "spread")
     on_print_day();
   else
@@ -739,6 +775,48 @@ void MainWindow::on_print_todos()
   }
   auto op = Gtk::PrintOperation::create();
   op->set_job_name("Ephemeris to do");
+  op->set_embed_page_setup(true);
+  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
+    op->set_n_pages(1);
+  });
+  op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
+    auto cr = ctx->get_cairo_context();
+    cr->set_source_rgb(1, 1, 1);
+    cr->paint();
+    cr->set_source_rgb(0, 0, 0);
+    auto layout = ctx->create_pango_layout();
+    double y = 24;
+    show_line(cr, layout, 36, y, job->title, true);
+    y += 8;
+    for (const auto& line : job->lines)
+      show_line(cr, layout, 36, y, line, false);
+  });
+  try {
+    op->run(Gtk::PRINT_OPERATION_ACTION_PRINT_DIALOG, *this);
+  } catch (const Gtk::PrintError& e) {
+    set_status(Glib::ustring("Print failed: ") + e.what());
+  }
+}
+
+void MainWindow::on_print_contacts()
+{
+  auto job = std::make_shared<PrintJob>();
+  job->kind = PrintJob::contacts;
+  job->title = "Contacts — " + binder_.display_name();
+  for (const auto& c : binder_.contacts()) {
+    job->lines.push_back(c.sort_label());
+    if (!c.phone.empty())
+      job->lines.push_back("  " + c.phone);
+    if (!c.email.empty())
+      job->lines.push_back("  " + c.email);
+    if (!c.timezone.empty())
+      job->lines.push_back("  " + c.timezone);
+    if (!c.notes.empty())
+      job->lines.push_back("  " + c.notes);
+    job->lines.emplace_back("");
+  }
+  auto op = Gtk::PrintOperation::create();
+  op->set_job_name("Ephemeris contacts");
   op->set_embed_page_setup(true);
   op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
     op->set_n_pages(1);

@@ -6,7 +6,7 @@
 
 namespace ephemeris {
 
-enum class Section { calendar, todo };
+enum class Section { calendar, todo, contacts };
 
 class TabStrip : public Gtk::Box {
  public:
@@ -19,11 +19,13 @@ class TabStrip : public Gtk::Box {
  private:
   void on_cal();
   void on_todo();
+  void on_contacts();
   void restyle();
   void update_todo_label();
 
   Gtk::Button cal_{"Calendar"};
   Gtk::Button todo_{"To Do"};
+  Gtk::Button contacts_{"Contacts"};
   Section section_ = Section::calendar;
   int open_count_ = 0;
   sigc::signal<void, Section> signal_section_;

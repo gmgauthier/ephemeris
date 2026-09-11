@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Unlicense */
 
 #include "todo_page.hpp"
+#include "mention.hpp"
 
 namespace ephemeris {
 namespace {
@@ -22,7 +23,7 @@ void calendar_get(const Gtk::Calendar& cal, Glib::Date& d)
             static_cast<Glib::Date::Year>(y));
 }
 
-TodoDlg run_todo_dialog(Gtk::Window& parent, Todo& t, bool existing)
+TodoDlg run_todo_dialog(Gtk::Window& parent, Todo& t, bool existing, Binder* binder)
 {
   Gtk::Dialog dlg(existing ? "Edit To Do" : "New To Do", parent, true);
   dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
@@ -36,9 +37,10 @@ TodoDlg run_todo_dialog(Gtk::Window& parent, Todo& t, bool existing)
   box->set_spacing(8);
 
   auto* text = Gtk::manage(new Gtk::Entry());
-  text->set_placeholder_text("Task");
+  text->set_placeholder_text("Task — type @ to mention a contact");
   text->set_text(t.text);
   text->set_activates_default(true);
+  attach_mentions(*text, binder);
   box->pack_start(*Gtk::manage(new Gtk::Label("Text", Gtk::ALIGN_START)), Gtk::PACK_SHRINK);
   box->pack_start(*text, Gtk::PACK_SHRINK);
 
@@ -193,7 +195,7 @@ void TodoPage::on_add_task()
   Todo t;
   t.has_due = true;
   t.due.set_time_current();
-  if (run_todo_dialog(*win, t, false) != TodoDlg::ok)
+  if (run_todo_dialog(*win, t, false, binder_) != TodoDlg::ok)
     return;
   if (t.text.empty())
     return;
@@ -213,7 +215,7 @@ void TodoPage::edit_item(int id)
   if (!win)
     return;
   Todo t = *cur;
-  const TodoDlg r = run_todo_dialog(*win, t, true);
+  const TodoDlg r = run_todo_dialog(*win, t, true, binder_);
   if (r == TodoDlg::del) {
     binder_->remove_todo(id);
     signal_changed_.emit();

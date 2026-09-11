@@ -38,6 +38,8 @@ executable(
   'src/tab_strip.cpp',
   'src/month_page.cpp',
   'src/todo_page.cpp',
+  'src/contacts_page.cpp',
+  'src/mention.cpp',
   'src/binder.cpp',
   'src/day_spread.cpp',
   'src/settings.cpp',

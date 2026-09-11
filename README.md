@@ -10,7 +10,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M4 in tree.** Paper day pages (ruled slots, two-day gutter), To Do lines, print. Packaging is M5.
+**M4.5 in tree.** Paper day pages, To Do, Contacts (A–Z, `@` mentions). Packaging is M5.
 
 | Doc | What |
 |---|---|

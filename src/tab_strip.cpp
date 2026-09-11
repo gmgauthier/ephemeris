@@ -13,20 +13,28 @@ TabStrip::TabStrip() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
   set_spacing(6);
   cal_.set_size_request(80, 48);
   todo_.set_size_request(80, 48);
+  contacts_.set_size_request(80, 48);
   cal_.set_relief(Gtk::RELIEF_NONE);
   todo_.set_relief(Gtk::RELIEF_NONE);
+  contacts_.set_relief(Gtk::RELIEF_NONE);
   cal_.set_margin_start(0);
   cal_.set_margin_end(0);
   todo_.set_margin_start(0);
   todo_.set_margin_end(0);
+  contacts_.set_margin_start(0);
+  contacts_.set_margin_end(0);
   cal_.get_style_context()->add_class("ephemeris-tab");
   cal_.get_style_context()->add_class("ephemeris-tab-cal");
   todo_.get_style_context()->add_class("ephemeris-tab");
   todo_.get_style_context()->add_class("ephemeris-tab-todo");
+  contacts_.get_style_context()->add_class("ephemeris-tab");
+  contacts_.get_style_context()->add_class("ephemeris-tab-contacts");
   cal_.signal_clicked().connect(sigc::mem_fun(*this, &TabStrip::on_cal));
   todo_.signal_clicked().connect(sigc::mem_fun(*this, &TabStrip::on_todo));
+  contacts_.signal_clicked().connect(sigc::mem_fun(*this, &TabStrip::on_contacts));
   pack_start(cal_, Gtk::PACK_SHRINK);
   pack_start(todo_, Gtk::PACK_SHRINK);
+  pack_start(contacts_, Gtk::PACK_SHRINK);
   restyle();
 }
 
@@ -64,16 +72,30 @@ void TabStrip::on_todo()
   signal_section_.emit(section_);
 }
 
+void TabStrip::on_contacts()
+{
+  section_ = Section::contacts;
+  restyle();
+  signal_section_.emit(section_);
+}
+
 void TabStrip::restyle()
 {
   auto cal_ctx = cal_.get_style_context();
   auto todo_ctx = todo_.get_style_context();
+  auto contacts_ctx = contacts_.get_style_context();
   if (section_ == Section::calendar) {
     cal_ctx->add_class("ephemeris-tab-active");
     todo_ctx->remove_class("ephemeris-tab-active");
-  } else {
+    contacts_ctx->remove_class("ephemeris-tab-active");
+  } else if (section_ == Section::todo) {
     todo_ctx->add_class("ephemeris-tab-active");
     cal_ctx->remove_class("ephemeris-tab-active");
+    contacts_ctx->remove_class("ephemeris-tab-active");
+  } else {
+    contacts_ctx->add_class("ephemeris-tab-active");
+    cal_ctx->remove_class("ephemeris-tab-active");
+    todo_ctx->remove_class("ephemeris-tab-active");
   }
 }
 

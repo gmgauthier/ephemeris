@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <glib.h>
 #include <glibmm/date.h>
 #include <glibmm/ustring.h>
 
@@ -26,6 +27,22 @@ struct Todo {
   bool done = false;
   int priority = 0;  // 0 none, 1–3
   Glib::ustring text;
+};
+
+constexpr int kContactNotesMax = 1000;
+
+struct Contact {
+  int id = 0;
+  Glib::ustring first;
+  Glib::ustring last;
+  Glib::ustring phone;
+  Glib::ustring email;
+  Glib::ustring timezone;
+  Glib::ustring notes;
+
+  Glib::ustring display_name() const;
+  Glib::ustring sort_label() const;
+  gunichar last_initial() const;
 };
 
 class Binder {
@@ -59,15 +76,23 @@ class Binder {
   bool remove_todo(int id);
   const Todo* find_todo(int id) const;
 
+  std::vector<Contact> contacts() const;
+  int add_contact(const Contact& c);
+  bool update_contact(const Contact& c);
+  bool remove_contact(int id);
+  const Contact* find_contact(int id) const;
+
  private:
   bool write_file(const std::string& path) const;
 
   std::vector<Appointment> appts_;
   std::vector<Todo> todos_;
+  std::vector<Contact> contacts_;
   std::string path_;
   std::string error_;
   int next_id_ = 1;
   int next_todo_id_ = 1;
+  int next_contact_id_ = 1;
   bool open_ = false;
   bool dirty_ = false;
 };
