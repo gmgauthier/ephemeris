@@ -29,8 +29,10 @@ window.ephemeris-window {
   background-color: #E8E4D8;
 }
 
-.ephemeris-day-today {
-  background-color: #E8F2FF;
+.ephemeris-day-today,
+.ephemeris-day-today label {
+  background-color: #1660C4;
+  color: #FFFFFF;
   font-weight: bold;
 }
 
@@ -39,7 +41,7 @@ window.ephemeris-window {
 }
 
 .ephemeris-tab {
-  padding: 10px 8px;
+  padding: 6px 8px;
   font-weight: bold;
   color: #E8F2FF;
 }

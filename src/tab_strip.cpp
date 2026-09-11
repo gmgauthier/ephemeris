@@ -8,8 +8,8 @@ TabStrip::TabStrip() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
 {
   set_valign(Gtk::ALIGN_START);
   set_margin_top(24);
-  cal_.set_size_request(72, 72);
-  todo_.set_size_request(72, 72);
+  cal_.set_size_request(72, 48);
+  todo_.set_size_request(72, 48);
   cal_.set_relief(Gtk::RELIEF_NONE);
   todo_.set_relief(Gtk::RELIEF_NONE);
   cal_.get_style_context()->add_class("ephemeris-tab");

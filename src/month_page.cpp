@@ -26,6 +26,7 @@ MonthPage::MonthPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
   set_border_width(12);
+  set_margin_end(16);
   head_.get_style_context()->add_class("ephemeris-month-head");
   head_.set_halign(Gtk::ALIGN_START);
   pack_start(head_, Gtk::PACK_SHRINK);
@@ -33,6 +34,7 @@ MonthPage::MonthPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
   grid_.set_column_homogeneous(true);
   grid_.set_row_spacing(2);
   grid_.set_column_spacing(2);
+  grid_.set_margin_end(8);
   pack_start(grid_, Gtk::PACK_EXPAND_WIDGET);
 
   Glib::Date now;
@@ -78,6 +80,7 @@ void MonthPage::next_month()
 Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today)
 {
   auto* ev = Gtk::manage(new Gtk::EventBox());
+  ev->set_visible_window(true);
   auto* lab = Gtk::manage(new Gtk::Label(day > 0 ? Glib::ustring::format(day) : Glib::ustring()));
   lab->set_xalign(1.0);
   lab->set_yalign(0.0);
@@ -85,8 +88,10 @@ Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today)
   ev->get_style_context()->add_class("ephemeris-day");
   if (!in_month)
     ev->get_style_context()->add_class("ephemeris-day-out");
-  if (is_today)
+  if (is_today) {
     ev->get_style_context()->add_class("ephemeris-day-today");
+    lab->get_style_context()->add_class("ephemeris-day-today");
+  }
   if (in_month && day > 0) {
     const int d = day;
     ev->add_events(Gdk::BUTTON_PRESS_MASK);
