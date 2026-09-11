@@ -25,7 +25,7 @@ int monday_index(Glib::Date::Weekday wd)
 MonthPage::MonthPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
-  set_border_width(12);
+  get_style_context()->add_class("ephemeris-sheet");
   head_.get_style_context()->add_class("ephemeris-month-head");
   head_.set_halign(Gtk::ALIGN_START);
   pack_start(head_, Gtk::PACK_SHRINK);

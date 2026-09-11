@@ -7,7 +7,7 @@ namespace ephemeris {
 TodoPage::TodoPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
 {
   get_style_context()->add_class("ephemeris-page");
-  set_border_width(12);
+  get_style_context()->add_class("ephemeris-sheet");
   auto* head = Gtk::manage(new Gtk::Label());
   head->set_markup("<b>To Do</b>");
   head->set_halign(Gtk::ALIGN_START);

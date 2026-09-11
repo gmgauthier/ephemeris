@@ -30,10 +30,18 @@ MainWindow::MainWindow()
   tabs_.signal_section().connect(sigc::mem_fun(*this, &MainWindow::show_section));
   month_.signal_day_chosen().connect(sigc::mem_fun(*this, &MainWindow::on_day));
 
+  pages_.get_style_context()->add_class("ephemeris-page");
+  sheet_.add(pages_);
+  sheet_.add_overlay(tabs_);
+  tabs_.set_halign(Gtk::ALIGN_END);
+  tabs_.set_valign(Gtk::ALIGN_START);
+  tabs_.set_hexpand(false);
+  sheet_.set_hexpand(true);
+  sheet_.set_vexpand(true);
+
   book_.set_spacing(0);
   book_.pack_start(rings_, Gtk::PACK_SHRINK);
-  book_.pack_start(pages_, Gtk::PACK_EXPAND_WIDGET);
-  book_.pack_start(tabs_, Gtk::PACK_SHRINK);
+  book_.pack_start(sheet_, Gtk::PACK_EXPAND_WIDGET);
 
   root_.pack_start(menubar_, Gtk::PACK_SHRINK);
   root_.pack_start(toolbar_, Gtk::PACK_SHRINK);
