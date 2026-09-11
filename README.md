@@ -10,7 +10,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M4.5 in tree.** Paper day pages, To Do, Contacts (A–Z, `@` mentions). Packaging is M5.
+**v0.1.0 (M0–M5).** Lotus Organizer-shaped binder: Calendar, To Do, Contacts, print, `.deb` + tarball + AppImage. See [INSTALL.md](INSTALL.md).
 
 | Doc | What |
 |---|---|
@@ -24,6 +24,8 @@ meson setup build
 meson compile -C build
 ./build/ephemeris
 ```
+
+Install: [INSTALL.md](INSTALL.md).
 
 ## License
 

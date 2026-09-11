@@ -1,0 +1,6 @@
+ephemeris (0.1.0-1) unstable; urgency=medium
+
+  * Initial package. gtkmm-3 paper appointment book for LCOS
+    (milestones M0–M5). Calendar, To Do, Contacts.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sat, 12 Sep 2026 00:10:00 +0100

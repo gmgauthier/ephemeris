@@ -1,0 +1,27 @@
+Source: ephemeris
+Section: utils
+Priority: optional
+Maintainer: Greg Gauthier <gmgauthier@protonmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ meson (>= 0.56),
+ ninja-build,
+ pkg-config,
+ g++,
+ libgtkmm-3.0-dev,
+ libxml2-dev
+Standards-Version: 4.7.0
+Homepage: https://gitea.scriptorium/gmgauthier/ephemeris
+Vcs-Git: https://gitea.scriptorium/gmgauthier/ephemeris.git
+Vcs-Browser: https://gitea.scriptorium/gmgauthier/ephemeris
+Rules-Requires-Root: no
+
+Package: ephemeris
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: paper appointment book for The Lunduke Computer Operating System
+ Ephemeris is a single-window gtkmm-3 Lotus Organizer-shaped binder:
+ Calendar, To Do, and Contacts in one local .ephemeris XML file. No
+ network, no CalDAV.

@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/ephemeris (origin), https://github.c
 
 Reference window: `brand/ui-reference.svg`
 
-## Status (2026-09-11)
+## Status (2026-09-12)
 
-**M4.5 in tree.** Contacts tab (evergreen), A–Z jump, `@` mentions on appointment and To Do add. Packaging is M5.
+**M5 in tree.** Packaging: `debian/`, `scripts/release.sh`, `INSTALL.md`. Tag `v0.1.0`.
 
 ## 1. Locked decisions
 
@@ -37,8 +37,8 @@ Reference window: `brand/ui-reference.svg`
 - **M2** — To Do + show-through
 - **M3** — print + keys
 - **M4** — chrome polish
-- **M4.5** — Contacts tab + `@` mentions (this slice)
-- **M5** — `.deb` + tarball + AppImage, tag `v0.1.0`
+- **M4.5** — Contacts tab + `@` mentions
+- **M5** — `.deb` + tarball + AppImage, tag `v0.1.0` (this slice)
 
 ## 3. Traps
 

@@ -1,1 +1,2 @@
+# Keep demo binders in git; leave them out of meson dist / git archive tarballs.
 data/samples/** export-ignore
