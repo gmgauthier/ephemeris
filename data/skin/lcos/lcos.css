@@ -64,7 +64,7 @@ window.ephemeris-window {
 .ephemeris-slot {
   background-color: #F7F5EF;
   color: #1A1A1A;
-  padding: 4px 8px 4px 10px;
+  padding: 4px 8px 4px 14px;
   border-bottom: 1px solid #D4CFC4;
   border-left: 2px solid #C45C4A;
 }

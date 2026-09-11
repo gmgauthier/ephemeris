@@ -111,6 +111,7 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
     }
     auto* lab = Gtk::manage(new Gtk::Label(label));
     lab->set_xalign(0.0);
+    lab->set_margin_start(6);
     lab->set_ellipsize(Pango::ELLIPSIZE_END);
     ev->add(*lab);
     const Glib::Date d = date;
