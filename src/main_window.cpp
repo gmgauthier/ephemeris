@@ -239,8 +239,10 @@ void MainWindow::build_toolbar()
   };
   add_btn("Today", sigc::mem_fun(*this, &MainWindow::on_today));
   add_btn("Month", sigc::mem_fun(*this, &MainWindow::on_month_btn));
-  add_btn("Prev", sigc::mem_fun(*this, &MainWindow::on_prev));
-  add_btn("Next", sigc::mem_fun(*this, &MainWindow::on_next));
+  btn_prev_.signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_prev));
+  btn_next_.signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_next));
+  toolbar_.pack_start(btn_prev_, Gtk::PACK_SHRINK);
+  toolbar_.pack_start(btn_next_, Gtk::PACK_SHRINK);
 }
 
 void MainWindow::set_status(const Glib::ustring& text)
@@ -293,6 +295,8 @@ void MainWindow::show_section(Section s)
     tabs_.set_section(Section::calendar);
     if (cal_item_)
       cal_item_->set_active(true);
+    btn_prev_.set_sensitive(true);
+    btn_next_.set_sensitive(true);
   } else {
     pages_.set_visible_child("todo");
     tabs_.set_section(Section::todo);
@@ -300,6 +304,8 @@ void MainWindow::show_section(Section s)
       todo_item_->set_active(true);
     todo_.refresh();
     set_status("To Do");
+    btn_prev_.set_sensitive(false);
+    btn_next_.set_sensitive(false);
   }
   suppress_section_ = false;
 }
@@ -761,13 +767,13 @@ bool MainWindow::on_key_press_event(GdkEventKey* event)
   if (!event)
     return Gtk::Window::on_key_press_event(event);
   if (event->keyval == GDK_KEY_Page_Up || event->keyval == GDK_KEY_KP_Page_Up) {
-    if (!in_editable_focus()) {
+    if (!in_editable_focus() && btn_prev_.get_sensitive()) {
       on_prev();
       return true;
     }
   }
   if (event->keyval == GDK_KEY_Page_Down || event->keyval == GDK_KEY_KP_Page_Down) {
-    if (!in_editable_focus()) {
+    if (!in_editable_focus() && btn_next_.get_sensitive()) {
       on_next();
       return true;
     }

@@ -67,6 +67,8 @@ class MainWindow : public Gtk::Window {
   Gtk::Box root_{Gtk::ORIENTATION_VERTICAL, 0};
   Gtk::MenuBar menubar_;
   Gtk::Box toolbar_{Gtk::ORIENTATION_HORIZONTAL, 4};
+  Gtk::Button btn_prev_{"Prev"};
+  Gtk::Button btn_next_{"Next"};
   Gtk::Box book_{Gtk::ORIENTATION_HORIZONTAL, 0};
   Rings rings_;
   Gtk::EventBox sheet_;
