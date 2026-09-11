@@ -91,24 +91,32 @@ void attach_mentions(Gtk::Entry& entry, Binder* binder)
       return starts_folded(last + ", " + first, frag);
     return false;
   });
-  completion->signal_match_selected().connect(
-      [&entry](const Gtk::TreeModel::iterator& iter) -> bool {
-        if (!iter)
-          return false;
-        const Glib::ustring name = (*iter)[cols().display];
-        const Glib::ustring text = entry.get_text();
-        const int pos = entry.get_position();
-        const int at = last_at_before(text, pos);
-        if (at < 0)
-          return false;
-        const Glib::ustring before = text.substr(0, at);
-        const Glib::ustring after =
-            static_cast<Glib::ustring::size_type>(pos) < text.size() ? text.substr(pos)
-                                                                     : Glib::ustring();
-        entry.set_text(before + name + after);
-        entry.set_position(at + static_cast<int>(name.size()));
-        return true;
-      });
+  auto insert_name = [&entry](const Gtk::TreeModel::iterator& iter) -> bool {
+    if (!iter)
+      return true;
+    const Glib::ustring name = (*iter)[cols().display];
+    const Glib::ustring text = entry.get_text();
+    const int pos = entry.get_position();
+    const int at = last_at_before(text, pos);
+    Glib::ustring kept;
+    if (at >= 0)
+      kept = text.substr(0, at);
+    else
+      kept = text;
+    if (!kept.empty() && !g_unichar_isspace(kept[kept.size() - 1]))
+      kept += " ";
+    const Glib::ustring after =
+        at >= 0 && static_cast<Glib::ustring::size_type>(pos) < text.size()
+            ? text.substr(pos)
+            : Glib::ustring();
+    entry.set_text(kept + name + after);
+    entry.set_position(static_cast<int>(kept.size() + name.size()));
+    return true;
+  };
+  /* Default handlers replace the whole entry. Run first and stop them. */
+  completion->signal_match_selected().connect(insert_name, false);
+  completion->signal_cursor_on_match().connect(
+      [](const Gtk::TreeModel::iterator&) -> bool { return true; }, false);
   entry.set_completion(completion);
 }
 
