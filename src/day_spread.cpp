@@ -124,6 +124,38 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date)
   }
   scroll->add(*list);
   col->pack_start(*scroll, Gtk::PACK_EXPAND_WIDGET);
+
+  if (binder_) {
+    const auto due = binder_->todos_due_on(date);
+    if (!due.empty()) {
+      auto* thru = Gtk::manage(new Gtk::Label());
+      thru->set_markup("<b>To Do due today</b>");
+      thru->set_halign(Gtk::ALIGN_START);
+      thru->set_margin_top(8);
+      col->pack_start(*thru, Gtk::PACK_SHRINK);
+      for (const Todo& t : due) {
+        Glib::ustring line = t.done ? "☑ " : "☐ ";
+        if (t.priority > 0)
+          line += Glib::ustring::format(t.priority) + " ";
+        line += t.text;
+        auto* lab = Gtk::manage(new Gtk::Label(line));
+        lab->set_xalign(0.0);
+        lab->set_ellipsize(Pango::ELLIPSIZE_END);
+        if (t.done)
+          lab->set_markup("<s>" + Glib::Markup::escape_text(line) + "</s>");
+        auto* ev = Gtk::manage(new Gtk::EventBox());
+        ev->add(*lab);
+        ev->add_events(Gdk::BUTTON_PRESS_MASK);
+        ev->signal_button_press_event().connect([this](GdkEventButton* e) {
+          if (!e || e->button != 1)
+            return false;
+          signal_goto_todo_.emit();
+          return true;
+        });
+        col->pack_start(*ev, Gtk::PACK_SHRINK);
+      }
+    }
+  }
   return col;
 }
 

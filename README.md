@@ -10,7 +10,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M1 in tree.** Binder file + two-day appointment spread. Open `data/samples/week.ephemeris`. To Do is still M2.
+**M2 in tree.** Appointments, To Do with due dates, show-through on the day page. Last binder restored from `~/.config/ephemeris/ephemeris.ini`.
 
 | Doc | What |
 |---|---|

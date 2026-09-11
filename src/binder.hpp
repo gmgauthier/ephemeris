@@ -19,6 +19,15 @@ struct Appointment {
   Glib::ustring text;
 };
 
+struct Todo {
+  int id = 0;
+  Glib::Date due;
+  bool has_due = false;
+  bool done = false;
+  int priority = 0;  // 0 none, 1–3
+  Glib::ustring text;
+};
+
 class Binder {
  public:
   bool is_open() const { return open_; }
@@ -42,13 +51,22 @@ class Binder {
   bool remove_appointment(int id);
   const Appointment* find(int id) const;
 
+  std::vector<Todo> todos() const;
+  std::vector<Todo> todos_due_on(const Glib::Date& date) const;
+  int add_todo(const Todo& t);
+  bool update_todo(const Todo& t);
+  bool remove_todo(int id);
+  const Todo* find_todo(int id) const;
+
  private:
   bool write_file(const std::string& path) const;
 
   std::vector<Appointment> appts_;
+  std::vector<Todo> todos_;
   std::string path_;
   std::string error_;
   int next_id_ = 1;
+  int next_todo_id_ = 1;
   bool open_ = false;
   bool dirty_ = false;
 };

@@ -4,4 +4,8 @@
   <appointment id="2" date="2026-09-14" start="10:00" end="12:00">write M1 day spread</appointment>
   <appointment id="3" date="2026-09-15" start="09:00" end="10:00">dentist</appointment>
   <appointment id="4" date="2026-09-16" start="14:00" end="15:30">library</appointment>
+  <appointment id="5" date="2026-09-13" start="16:00" end="18:00">Prep for Aristotle Podcast</appointment>
+  <todo id="1" done="false" priority="2" due="2026-09-14">buy stamps</todo>
+  <todo id="2" done="false" priority="1" due="2026-09-15">call the dentist</todo>
+  <todo id="3" done="true" priority="0" due="2026-09-14">open sample binder</todo>
 </ephemeris>

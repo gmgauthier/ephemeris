@@ -3,29 +3,256 @@
 #include "todo_page.hpp"
 
 namespace ephemeris {
+namespace {
 
-TodoPage::TodoPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
+bool edit_todo_dialog(Gtk::Window& parent, Todo& t, bool existing)
+{
+  Gtk::Dialog dlg(existing ? "Edit To Do" : "New To Do", parent, true);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  if (existing)
+    dlg.add_button("_Delete", Gtk::RESPONSE_REJECT);
+  dlg.add_button("_OK", Gtk::RESPONSE_ACCEPT);
+  dlg.set_default_response(Gtk::RESPONSE_ACCEPT);
+
+  auto* box = dlg.get_content_area();
+  box->set_border_width(10);
+  box->set_spacing(8);
+
+  auto* text = Gtk::manage(new Gtk::Entry());
+  text->set_placeholder_text("Task");
+  text->set_text(t.text);
+  text->set_activates_default(true);
+  box->pack_start(*Gtk::manage(new Gtk::Label("Text", Gtk::ALIGN_START)), Gtk::PACK_SHRINK);
+  box->pack_start(*text, Gtk::PACK_SHRINK);
+
+  auto* pri = Gtk::manage(new Gtk::ComboBoxText());
+  pri->append("0", "None");
+  pri->append("1", "1");
+  pri->append("2", "2");
+  pri->append("3", "3");
+  pri->set_active_id(Glib::ustring::format(t.priority));
+
+  auto* due_on = Gtk::manage(new Gtk::CheckButton("Due date"));
+  auto* due = Gtk::manage(new Gtk::Entry());
+  due->set_placeholder_text("YYYY-MM-DD");
+  if (t.has_due) {
+    due_on->set_active(true);
+    due->set_text(date_iso(t.due));
+  }
+  due->set_sensitive(due_on->get_active());
+  due_on->signal_toggled().connect([due_on, due]() { due->set_sensitive(due_on->get_active()); });
+
+  auto* row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
+  row->pack_start(*Gtk::manage(new Gtk::Label("Priority")), Gtk::PACK_SHRINK);
+  row->pack_start(*pri, Gtk::PACK_SHRINK);
+  box->pack_start(*row, Gtk::PACK_SHRINK);
+  box->pack_start(*due_on, Gtk::PACK_SHRINK);
+  box->pack_start(*due, Gtk::PACK_SHRINK);
+  dlg.show_all();
+
+  const int resp = dlg.run();
+  if (resp == Gtk::RESPONSE_REJECT)
+    return existing;
+  if (resp != Gtk::RESPONSE_ACCEPT)
+    return false;
+  t.text = text->get_text();
+  try {
+    t.priority = std::stoi(pri->get_active_id());
+  } catch (...) {
+    t.priority = 0;
+  }
+  t.has_due = due_on->get_active();
+  if (t.has_due) {
+    if (!date_from_iso(due->get_text().raw(), t.due))
+      t.has_due = false;
+  }
+  return true;
+}
+
+}  // namespace
+
+TodoPage::TodoPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
   set_margin_start(16);
   set_margin_end(20);
   set_margin_top(12);
   set_margin_bottom(16);
+
+  auto* top = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
   auto* head = Gtk::manage(new Gtk::Label());
   head->set_markup("<b>To Do</b>");
   head->set_halign(Gtk::ALIGN_START);
   head->get_style_context()->add_class("ephemeris-month-head");
-  pack_start(*head, Gtk::PACK_SHRINK);
-  auto* hint = Gtk::manage(new Gtk::Label("Tasks come in M2. This page is the lined list."));
-  hint->set_halign(Gtk::ALIGN_START);
-  hint->get_style_context()->add_class("ephemeris-todo-line");
-  pack_start(*hint, Gtk::PACK_SHRINK);
-  for (int i = 0; i < 12; ++i) {
-    auto* line = Gtk::manage(new Gtk::Label("☐  ··································"));
-    line->set_halign(Gtk::ALIGN_START);
-    line->get_style_context()->add_class("ephemeris-todo-line");
-    pack_start(*line, Gtk::PACK_SHRINK);
+  auto* add = Gtk::manage(new Gtk::Button("Add"));
+  add->signal_clicked().connect(sigc::mem_fun(*this, &TodoPage::on_add_task));
+  top->pack_start(*head, Gtk::PACK_EXPAND_WIDGET);
+  top->pack_end(*add, Gtk::PACK_SHRINK);
+  pack_start(*top, Gtk::PACK_SHRINK);
+
+  auto* scroll = Gtk::manage(new Gtk::ScrolledWindow());
+  scroll->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+  scroll->add(list_);
+  pack_start(*scroll, Gtk::PACK_EXPAND_WIDGET);
+}
+
+void TodoPage::set_binder(Binder* b)
+{
+  binder_ = b;
+  refresh();
+}
+
+void TodoPage::refresh()
+{
+  for (auto* ch : list_.get_children())
+    list_.remove(*ch);
+  if (!binder_)
+    return;
+  for (const Todo& t : binder_->todos())
+    list_.pack_start(*make_row(t), Gtk::PACK_SHRINK);
+  list_.show_all();
+}
+
+Gtk::Widget* TodoPage::make_row(const Todo& t)
+{
+  auto* row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
+  row->get_style_context()->add_class("ephemeris-todo-line");
+  auto* ck = Gtk::manage(new Gtk::CheckButton());
+  ck->set_active(t.done);
+  const int id = t.id;
+  ck->signal_toggled().connect([this, ck, id]() {
+    if (!binder_)
+      return;
+    const Todo* cur = binder_->find_todo(id);
+    if (!cur)
+      return;
+    Todo n = *cur;
+    n.done = ck->get_active();
+    binder_->update_todo(n);
+    signal_changed_.emit();
+    refresh();
+  });
+  auto* pri = Gtk::manage(new Gtk::Label(t.priority > 0 ? Glib::ustring::format(t.priority) : "·"));
+  pri->set_width_chars(2);
+  Glib::ustring body = t.text;
+  if (t.done)
+    body = "<s>" + Glib::Markup::escape_text(body) + "</s>";
+  else
+    body = Glib::Markup::escape_text(body);
+  auto* lab = Gtk::manage(new Gtk::Label());
+  lab->set_markup(body);
+  lab->set_xalign(0.0);
+  lab->set_ellipsize(Pango::ELLIPSIZE_END);
+  Glib::ustring due = t.has_due ? date_iso(t.due) : "";
+  auto* due_lab = Gtk::manage(new Gtk::Label(due));
+  due_lab->set_halign(Gtk::ALIGN_END);
+
+  auto* ev = Gtk::manage(new Gtk::EventBox());
+  ev->add(*lab);
+  ev->add_events(Gdk::BUTTON_PRESS_MASK);
+  ev->signal_button_press_event().connect([this, id](GdkEventButton* e) {
+    if (!e || e->button != 1)
+      return false;
+    edit_item(id);
+    return true;
+  });
+
+  row->pack_start(*ck, Gtk::PACK_SHRINK);
+  row->pack_start(*pri, Gtk::PACK_SHRINK);
+  row->pack_start(*ev, Gtk::PACK_EXPAND_WIDGET);
+  row->pack_end(*due_lab, Gtk::PACK_SHRINK);
+  return row;
+}
+
+void TodoPage::on_add_task()
+{
+  if (!binder_)
+    return;
+  auto* win = dynamic_cast<Gtk::Window*>(get_toplevel());
+  if (!win)
+    return;
+  Todo t;
+  t.has_due = true;
+  t.due.set_time_current();
+  if (!edit_todo_dialog(*win, t, false))
+    return;
+  if (t.text.empty())
+    return;
+  binder_->add_todo(t);
+  signal_changed_.emit();
+  refresh();
+}
+
+void TodoPage::edit_item(int id)
+{
+  if (!binder_)
+    return;
+  const Todo* cur = binder_->find_todo(id);
+  if (!cur)
+    return;
+  auto* win = dynamic_cast<Gtk::Window*>(get_toplevel());
+  if (!win)
+    return;
+  Todo t = *cur;
+  Gtk::Dialog dlg("Edit To Do", *win, true);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Delete", Gtk::RESPONSE_REJECT);
+  dlg.add_button("_OK", Gtk::RESPONSE_ACCEPT);
+  dlg.set_default_response(Gtk::RESPONSE_ACCEPT);
+  auto* box = dlg.get_content_area();
+  box->set_border_width(10);
+  box->set_spacing(8);
+  auto* text = Gtk::manage(new Gtk::Entry());
+  text->set_text(t.text);
+  text->set_activates_default(true);
+  box->pack_start(*Gtk::manage(new Gtk::Label("Text", Gtk::ALIGN_START)), Gtk::PACK_SHRINK);
+  box->pack_start(*text, Gtk::PACK_SHRINK);
+  auto* pri = Gtk::manage(new Gtk::ComboBoxText());
+  pri->append("0", "None");
+  pri->append("1", "1");
+  pri->append("2", "2");
+  pri->append("3", "3");
+  pri->set_active_id(Glib::ustring::format(t.priority));
+  auto* due_on = Gtk::manage(new Gtk::CheckButton("Due date"));
+  auto* due = Gtk::manage(new Gtk::Entry());
+  due->set_placeholder_text("YYYY-MM-DD");
+  if (t.has_due) {
+    due_on->set_active(true);
+    due->set_text(date_iso(t.due));
   }
+  due->set_sensitive(due_on->get_active());
+  due_on->signal_toggled().connect([due_on, due]() { due->set_sensitive(due_on->get_active()); });
+  auto* row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
+  row->pack_start(*Gtk::manage(new Gtk::Label("Priority")), Gtk::PACK_SHRINK);
+  row->pack_start(*pri, Gtk::PACK_SHRINK);
+  box->pack_start(*row, Gtk::PACK_SHRINK);
+  box->pack_start(*due_on, Gtk::PACK_SHRINK);
+  box->pack_start(*due, Gtk::PACK_SHRINK);
+  dlg.show_all();
+  const int resp = dlg.run();
+  dlg.hide();
+  if (resp == Gtk::RESPONSE_REJECT) {
+    binder_->remove_todo(id);
+    signal_changed_.emit();
+    refresh();
+    return;
+  }
+  if (resp != Gtk::RESPONSE_ACCEPT)
+    return;
+  t.text = text->get_text();
+  if (t.text.empty())
+    return;
+  try {
+    t.priority = std::stoi(pri->get_active_id());
+  } catch (...) {
+    t.priority = 0;
+  }
+  t.has_due = due_on->get_active();
+  if (t.has_due && !date_from_iso(std::string(due->get_text().c_str()), t.due))
+    t.has_due = false;
+  binder_->update_todo(t);
+  signal_changed_.emit();
+  refresh();
 }
 
 }  // namespace ephemeris

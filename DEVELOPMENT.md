@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-09-11)
 
-**M1 in tree.** `.ephemeris` XML, two-day spread, month marks. To Do is M2.
+**M2 in tree.** To Do list, show-through on the day spread, last binder restored from ini.
 
 ## 1. Locked decisions
 
@@ -32,8 +32,8 @@ Reference window: `brand/ui-reference.svg`
 ## 2. Milestones
 
 - **M0** — binder window
-- **M1** — XML file + appointments on the day spread (this slice)
-- **M2** — To Do + show-through
+- **M1** — XML file + appointments on the day spread
+- **M2** — To Do + show-through (this slice)
 - **M3** — print + keys
 - **M4** — chrome polish
 - **M5** — `.deb` + tarball + AppImage, tag `v0.1.0`

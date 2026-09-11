@@ -22,6 +22,7 @@ class DaySpread : public Gtk::Box {
   void today();
 
   sigc::signal<void>& signal_changed() { return signal_changed_; }
+  sigc::signal<void>& signal_goto_todo() { return signal_goto_todo_; }
 
  private:
   Gtk::Widget* build_day(const Glib::Date& date);
@@ -31,6 +32,7 @@ class DaySpread : public Gtk::Box {
   Glib::Date left_;
   Gtk::Box cols_{Gtk::ORIENTATION_HORIZONTAL, 16};
   sigc::signal<void> signal_changed_;
+  sigc::signal<void> signal_goto_todo_;
 };
 
 }  // namespace ephemeris

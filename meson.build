@@ -40,6 +40,7 @@ executable(
   'src/todo_page.cpp',
   'src/binder.cpp',
   'src/day_spread.cpp',
+  'src/settings.cpp',
   include_directories: inc,
   dependencies: [gtkmm, libxml],
   install: true,

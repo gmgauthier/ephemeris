@@ -132,9 +132,11 @@ std::string Binder::display_name() const
 void Binder::close()
 {
   appts_.clear();
+  todos_.clear();
   path_.clear();
   error_.clear();
   next_id_ = 1;
+  next_todo_id_ = 1;
   open_ = false;
   dirty_ = false;
 }
@@ -183,6 +185,10 @@ std::set<int> Binder::days_in_month(Glib::Date::Month month, Glib::Date::Year ye
     if (a.date.get_month() == month && a.date.get_year() == year)
       days.insert(a.date.get_day());
   }
+  for (const auto& t : todos_) {
+    if (t.has_due && t.due.get_month() == month && t.due.get_year() == year)
+      days.insert(t.due.get_day());
+  }
   return days;
 }
 
@@ -224,6 +230,82 @@ bool Binder::remove_appointment(int id)
   return true;
 }
 
+bool todo_less(const Todo& a, const Todo& b)
+{
+  if (a.done != b.done)
+    return !a.done;
+  if (a.has_due != b.has_due)
+    return a.has_due;
+  if (a.has_due && a.due.get_julian() != b.due.get_julian())
+    return a.due.get_julian() < b.due.get_julian();
+  const int pa = a.priority == 0 ? 9 : a.priority;
+  const int pb = b.priority == 0 ? 9 : b.priority;
+  if (pa != pb)
+    return pa < pb;
+  return a.id < b.id;
+}
+
+std::vector<Todo> Binder::todos() const
+{
+  std::vector<Todo> out = todos_;
+  std::sort(out.begin(), out.end(), todo_less);
+  return out;
+}
+
+std::vector<Todo> Binder::todos_due_on(const Glib::Date& date) const
+{
+  std::vector<Todo> out;
+  for (const auto& t : todos_) {
+    if (t.has_due && date_eq(t.due, date))
+      out.push_back(t);
+  }
+  std::sort(out.begin(), out.end(), todo_less);
+  return out;
+}
+
+const Todo* Binder::find_todo(int id) const
+{
+  for (const auto& t : todos_) {
+    if (t.id == id)
+      return &t;
+  }
+  return nullptr;
+}
+
+int Binder::add_todo(const Todo& t)
+{
+  if (!open_)
+    create_new();
+  Todo n = t;
+  n.id = next_todo_id_++;
+  todos_.push_back(n);
+  dirty_ = true;
+  return n.id;
+}
+
+bool Binder::update_todo(const Todo& t)
+{
+  for (auto& x : todos_) {
+    if (x.id == t.id) {
+      x = t;
+      dirty_ = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Binder::remove_todo(int id)
+{
+  auto it = std::remove_if(todos_.begin(), todos_.end(),
+                           [id](const Todo& t) { return t.id == id; });
+  if (it == todos_.end())
+    return false;
+  todos_.erase(it, todos_.end());
+  dirty_ = true;
+  return true;
+}
+
 bool Binder::write_file(const std::string& path) const
 {
   std::ostringstream os;
@@ -233,6 +315,13 @@ bool Binder::write_file(const std::string& path) const
     os << "  <appointment id=\"" << a.id << "\" date=\"" << date_iso(a.date) << "\" start=\""
        << format_hm(a.start_min) << "\" end=\"" << format_hm(a.end_min) << "\">"
        << xml_escape(a.text) << "</appointment>\n";
+  }
+  for (const auto& t : todos_) {
+    os << "  <todo id=\"" << t.id << "\" done=\"" << (t.done ? "true" : "false")
+       << "\" priority=\"" << t.priority << "\"";
+    if (t.has_due)
+      os << " due=\"" << date_iso(t.due) << "\"";
+    os << ">" << xml_escape(t.text) << "</todo>\n";
   }
   os << "</ephemeris>\n";
   try {
@@ -291,22 +380,39 @@ bool Binder::open(const std::string& path)
   }
 
   std::vector<Appointment> loaded;
+  std::vector<Todo> loaded_todos;
   int max_id = 0;
+  int max_todo = 0;
   for (xmlNode* n = root->children; n; n = n->next) {
-    if (n->type != XML_ELEMENT_NODE || node_name(n) != "appointment")
+    if (n->type != XML_ELEMENT_NODE)
       continue;
-    Appointment a;
-    const std::string id_s = node_prop(n, "id");
-    if (!id_s.empty())
-      a.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
-    date_from_iso(node_prop(n, "date"), a.date);
-    a.start_min = parse_hm(node_prop(n, "start"));
-    const std::string end = node_prop(n, "end");
-    a.end_min = end.empty() ? a.start_min + 30 : parse_hm(end);
-    a.text = node_text(n);
-    if (a.id > max_id)
-      max_id = a.id;
-    loaded.push_back(std::move(a));
+    if (node_name(n) == "appointment") {
+      Appointment a;
+      const std::string id_s = node_prop(n, "id");
+      if (!id_s.empty())
+        a.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
+      date_from_iso(node_prop(n, "date"), a.date);
+      a.start_min = parse_hm(node_prop(n, "start"));
+      const std::string end = node_prop(n, "end");
+      a.end_min = end.empty() ? a.start_min + 30 : parse_hm(end);
+      a.text = node_text(n);
+      if (a.id > max_id)
+        max_id = a.id;
+      loaded.push_back(std::move(a));
+    } else if (node_name(n) == "todo") {
+      Todo t;
+      const std::string id_s = node_prop(n, "id");
+      if (!id_s.empty())
+        t.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
+      t.done = node_prop(n, "done") == "true";
+      t.priority = static_cast<int>(g_ascii_strtoll(node_prop(n, "priority").c_str(), nullptr, 10));
+      const std::string due = node_prop(n, "due");
+      t.has_due = !due.empty() && date_from_iso(due, t.due);
+      t.text = node_text(n);
+      if (t.id > max_todo)
+        max_todo = t.id;
+      loaded_todos.push_back(std::move(t));
+    }
   }
   xmlFreeDoc(doc);
 
@@ -314,11 +420,19 @@ bool Binder::open(const std::string& path)
     if (a.id < 1)
       a.id = ++max_id;
   }
+  for (auto& t : loaded_todos) {
+    if (t.id < 1)
+      t.id = ++max_todo;
+  }
   appts_ = std::move(loaded);
+  todos_ = std::move(loaded_todos);
   path_ = path;
   next_id_ = max_id + 1;
   if (next_id_ < 1)
     next_id_ = 1;
+  next_todo_id_ = max_todo + 1;
+  if (next_todo_id_ < 1)
+    next_todo_id_ = 1;
   open_ = true;
   dirty_ = false;
   return true;

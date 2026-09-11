@@ -6,6 +6,7 @@
 #include "day_spread.hpp"
 #include "month_page.hpp"
 #include "rings.hpp"
+#include "settings.hpp"
 #include "tab_strip.hpp"
 #include "todo_page.hpp"
 
@@ -47,6 +48,8 @@ class MainWindow : public Gtk::Window {
   void on_not_yet(const Glib::ustring& feature);
   void on_day(const Glib::Date& date);
   void on_binder_changed();
+  void persist();
+  void restore_session();
 
   Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label,
                           const sigc::slot<void()>& slot, guint key = 0,
@@ -76,6 +79,7 @@ class MainWindow : public Gtk::Window {
   enum class CalView { month, spread };
   CalView cal_view_ = CalView::month;
   Binder binder_;
+  Settings settings_;
 };
 
 }  // namespace ephemeris

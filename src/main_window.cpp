@@ -14,8 +14,10 @@ namespace ephemeris {
 
 MainWindow::MainWindow()
 {
+  settings_.load();
   set_title("Ephemeris");
-  set_default_size(720, 520);
+  set_default_size(settings_.window_w > 0 ? settings_.window_w : 720,
+                   settings_.window_h > 0 ? settings_.window_h : 520);
   get_style_context()->add_class("ephemeris-window");
   accel_ = Gtk::AccelGroup::create();
   add_accel_group(accel_);
@@ -25,7 +27,11 @@ MainWindow::MainWindow()
 
   binder_.create_new();
   spread_.set_binder(&binder_);
+  todo_.set_binder(&binder_);
   spread_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
+  todo_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
+  spread_.signal_goto_todo().connect(
+      sigc::bind(sigc::mem_fun(*this, &MainWindow::show_section), Section::todo));
 
   pages_.add(month_, "month");
   pages_.add(spread_, "spread");
@@ -60,9 +66,15 @@ MainWindow::MainWindow()
   status_ctx_ = status_.get_context_id("main");
   root_.pack_start(status_, Gtk::PACK_SHRINK);
   add(root_);
+  if (settings_.window_w > 0 && settings_.window_h > 0)
+    resize(settings_.window_w, settings_.window_h);
+  if (settings_.window_x >= 0 && settings_.window_y >= 0)
+    move(settings_.window_x, settings_.window_y);
+  signal_hide().connect(sigc::mem_fun(*this, &MainWindow::persist));
   update_title();
   set_status("Calendar — " + month_.title());
   show_all();
+  restore_session();
 }
 
 void MainWindow::load_css()
@@ -214,7 +226,8 @@ void MainWindow::show_section(Section s)
     tabs_.set_section(Section::todo);
     if (todo_item_)
       todo_item_->set_active(true);
-    set_status("To Do — list comes in M2.");
+    todo_.refresh();
+    set_status("To Do");
   }
   suppress_section_ = false;
 }
@@ -267,6 +280,9 @@ void MainWindow::on_binder_changed()
 {
   update_title();
   refresh_marks();
+  todo_.refresh();
+  if (cal_view_ == CalView::spread)
+    spread_.refresh();
 }
 
 void MainWindow::show_error(const Glib::ustring& message)
@@ -360,6 +376,7 @@ void MainWindow::on_new()
     return;
   binder_.create_new();
   spread_.set_binder(&binder_);
+  todo_.set_binder(&binder_);
   month_.today();
   refresh_marks();
   show_month();
@@ -387,6 +404,7 @@ void MainWindow::on_open()
     return;
   }
   spread_.set_binder(&binder_);
+  todo_.set_binder(&binder_);
   month_.today();
   refresh_marks();
   show_month();
@@ -421,6 +439,56 @@ void MainWindow::on_about()
 {
   AboutDialog dlg(*this);
   dlg.run();
+}
+
+void MainWindow::persist()
+{
+  int x = 0, y = 0, w = 0, h = 0;
+  get_position(x, y);
+  get_size(w, h);
+  settings_.window_x = x;
+  settings_.window_y = y;
+  settings_.window_w = w;
+  settings_.window_h = h;
+  if (binder_.is_open() && !binder_.path().empty())
+    settings_.last_path = binder_.path();
+  else
+    settings_.last_path.clear();
+  settings_.last_section =
+      (pages_.get_visible_child_name() == "todo") ? "todo" : "calendar";
+  settings_.last_cal = (cal_view_ == CalView::spread) ? "spread" : "month";
+  settings_.last_date = date_iso(spread_.left_date());
+  settings_.save();
+}
+
+void MainWindow::restore_session()
+{
+  if (settings_.last_path.empty() ||
+      !Glib::file_test(settings_.last_path, Glib::FILE_TEST_IS_REGULAR))
+    return;
+  if (!binder_.open(settings_.last_path)) {
+    set_status("Could not restore last binder.");
+    return;
+  }
+  spread_.set_binder(&binder_);
+  todo_.set_binder(&binder_);
+  Glib::Date d;
+  if (!settings_.last_date.empty() && date_from_iso(settings_.last_date, d)) {
+    month_.set_month(d.get_month(), d.get_year());
+    spread_.set_left_date(d);
+  } else {
+    month_.today();
+  }
+  refresh_marks();
+  update_title();
+  if (settings_.last_cal == "spread")
+    cal_view_ = CalView::spread;
+  else
+    cal_view_ = CalView::month;
+  if (settings_.last_section == "todo")
+    show_section(Section::todo);
+  else
+    show_section(Section::calendar);
 }
 
 void MainWindow::on_not_yet(const Glib::ustring& feature)
