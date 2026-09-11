@@ -80,7 +80,13 @@ void MonthPage::next_month()
   set_month(d.get_month(), d.get_year());
 }
 
-Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today)
+void MonthPage::set_marks(std::set<int> days)
+{
+  marks_ = std::move(days);
+  rebuild();
+}
+
+Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today, bool busy)
 {
   auto* ev = Gtk::manage(new Gtk::EventBox());
   ev->set_visible_window(true);
@@ -94,6 +100,10 @@ Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today)
   if (is_today) {
     ev->get_style_context()->add_class("ephemeris-day-today");
     lab->get_style_context()->add_class("ephemeris-day-today");
+  }
+  if (busy && in_month) {
+    ev->get_style_context()->add_class("ephemeris-day-busy");
+    lab->get_style_context()->add_class("ephemeris-day-busy");
   }
   if (in_month && day > 0) {
     const int d = day;
@@ -137,7 +147,8 @@ void MonthPage::rebuild()
       const bool in_month = cursor.get_month() == month_ && cursor.get_year() == year_;
       const int d = cursor.get_day();
       const bool is_today = this_month && in_month && d == today_d;
-      auto* w = make_day(d, in_month, is_today);
+      const bool busy = in_month && marks_.count(d) > 0;
+      auto* w = make_day(d, in_month, is_today, busy);
       grid_.attach(*w, col, row + 1, 1, 1);
       cursor.add_days(1);
     }

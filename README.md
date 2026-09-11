@@ -10,7 +10,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M0 in tree.** Binder chrome, month page, To Do tab. Appointments and the `.ephemeris` file come in M1.
+**M1 in tree.** Binder file + two-day appointment spread. Open `data/samples/week.ephemeris`. To Do is still M2.
 
 | Doc | What |
 |---|---|
@@ -19,7 +19,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 ## Build
 
 ```
-sudo apt install build-essential meson ninja-build pkg-config g++ libgtkmm-3.0-dev
+sudo apt install build-essential meson ninja-build pkg-config g++ libgtkmm-3.0-dev libxml2-dev
 meson setup build
 meson compile -C build
 ./build/ephemeris

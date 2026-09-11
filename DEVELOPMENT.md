@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-09-11)
 
-**M0 in tree.** Binder chrome, month page, To Do tab. No file yet.
+**M1 in tree.** `.ephemeris` XML, two-day spread, month marks. To Do is M2.
 
 ## 1. Locked decisions
 
@@ -31,8 +31,8 @@ Reference window: `brand/ui-reference.svg`
 
 ## 2. Milestones
 
-- **M0** — binder window (this slice)
-- **M1** — XML file + appointments on the day spread
+- **M0** — binder window
+- **M1** — XML file + appointments on the day spread (this slice)
 - **M2** — To Do + show-through
 - **M3** — print + keys
 - **M4** — chrome polish

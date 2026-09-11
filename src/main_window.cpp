@@ -2,9 +2,13 @@
 
 #include "main_window.hpp"
 #include "about_dialog.hpp"
+#include "config.hpp"
 #include "paths.hpp"
 
 #include <iostream>
+
+#include <glibmm/fileutils.h>
+#include <glibmm/miscutils.h>
 
 namespace ephemeris {
 
@@ -19,11 +23,18 @@ MainWindow::MainWindow()
   build_menu();
   build_toolbar();
 
-  pages_.add(month_, "calendar");
+  binder_.create_new();
+  spread_.set_binder(&binder_);
+  spread_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
+
+  pages_.add(month_, "month");
+  pages_.add(spread_, "spread");
   pages_.add(todo_, "todo");
-  pages_.set_visible_child("calendar");
+  pages_.set_visible_child("month");
   month_.set_hexpand(true);
   month_.set_vexpand(true);
+  spread_.set_hexpand(true);
+  spread_.set_vexpand(true);
   todo_.set_hexpand(true);
   todo_.set_vexpand(true);
 
@@ -47,9 +58,10 @@ MainWindow::MainWindow()
   root_.pack_start(toolbar_, Gtk::PACK_SHRINK);
   root_.pack_start(book_, Gtk::PACK_EXPAND_WIDGET);
   status_ctx_ = status_.get_context_id("main");
-  status_.push("Calendar — " + month_.title(), status_ctx_);
   root_.pack_start(status_, Gtk::PACK_SHRINK);
   add(root_);
+  update_title();
+  set_status("Calendar — " + month_.title());
   show_all();
 }
 
@@ -91,17 +103,14 @@ void MainWindow::build_menu()
   };
 
   auto* file = Gtk::manage(new Gtk::Menu());
-  add_item(*file, "_New",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("New")),
-           GDK_KEY_n, Gdk::CONTROL_MASK);
-  add_item(*file, "_Open…",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("Open")),
-           GDK_KEY_o, Gdk::CONTROL_MASK);
-  add_item(*file, "_Save",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("Save")),
-           GDK_KEY_s, Gdk::CONTROL_MASK);
-  add_item(*file, "Save _As…",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("Save As")));
+  add_item(*file, "_New", sigc::mem_fun(*this, &MainWindow::on_new), GDK_KEY_n,
+           Gdk::CONTROL_MASK);
+  add_item(*file, "_Open…", sigc::mem_fun(*this, &MainWindow::on_open), GDK_KEY_o,
+           Gdk::CONTROL_MASK);
+  add_item(*file, "_Save", sigc::mem_fun(*this, &MainWindow::on_save), GDK_KEY_s,
+           Gdk::CONTROL_MASK);
+  add_item(*file, "Save _As…", sigc::mem_fun(*this, &MainWindow::on_save_as), GDK_KEY_s,
+           Gdk::CONTROL_MASK | Gdk::SHIFT_MASK);
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*file, "_Print…",
            sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("Print")),
@@ -145,60 +154,267 @@ void MainWindow::build_toolbar()
     toolbar_.pack_start(*b, Gtk::PACK_SHRINK);
   };
   add_btn("Today", sigc::mem_fun(*this, &MainWindow::on_today));
+  add_btn("Month", sigc::mem_fun(*this, &MainWindow::on_month_btn));
   add_btn("Prev", sigc::mem_fun(*this, &MainWindow::on_prev));
   add_btn("Next", sigc::mem_fun(*this, &MainWindow::on_next));
+}
+
+void MainWindow::set_status(const Glib::ustring& text)
+{
+  status_.pop(status_ctx_);
+  status_.push(text, status_ctx_);
+}
+
+void MainWindow::update_title()
+{
+  Glib::ustring t = "Ephemeris - ";
+  t += binder_.display_name();
+  if (binder_.dirty())
+    t += "*";
+  set_title(t);
+}
+
+void MainWindow::refresh_marks()
+{
+  month_.set_marks(binder_.days_in_month(month_.month(), month_.year()));
+}
+
+void MainWindow::show_month()
+{
+  cal_view_ = CalView::month;
+  show_section(Section::calendar);
+}
+
+void MainWindow::show_spread(const Glib::Date& left)
+{
+  spread_.set_left_date(left);
+  cal_view_ = CalView::spread;
+  show_section(Section::calendar);
 }
 
 void MainWindow::show_section(Section s)
 {
   suppress_section_ = true;
   if (s == Section::calendar) {
-    pages_.set_visible_child("calendar");
+    if (cal_view_ == CalView::spread) {
+      pages_.set_visible_child("spread");
+      char buf[64];
+      g_date_strftime(buf, sizeof(buf), "%A %d %B",
+                      const_cast<GDate*>(spread_.left_date().gobj()));
+      set_status(Glib::ustring("Calendar — ") + buf);
+    } else {
+      pages_.set_visible_child("month");
+      set_status("Calendar — " + month_.title());
+    }
     tabs_.set_section(Section::calendar);
     if (cal_item_)
       cal_item_->set_active(true);
-    status_.pop(status_ctx_);
-    status_.push("Calendar — " + month_.title(), status_ctx_);
   } else {
     pages_.set_visible_child("todo");
     tabs_.set_section(Section::todo);
     if (todo_item_)
       todo_item_->set_active(true);
-    status_.pop(status_ctx_);
-    status_.push("To Do — list comes in M2.", status_ctx_);
+    set_status("To Do — list comes in M2.");
   }
   suppress_section_ = false;
 }
 
 void MainWindow::on_today()
 {
+  Glib::Date now;
+  now.set_time_current();
   month_.today();
-  show_section(Section::calendar);
+  refresh_marks();
+  show_spread(now);
+}
+
+void MainWindow::on_month_btn()
+{
+  refresh_marks();
+  show_month();
 }
 
 void MainWindow::on_prev()
 {
+  if (cal_view_ == CalView::spread && pages_.get_visible_child_name() == "spread") {
+    spread_.prev_spread();
+    show_section(Section::calendar);
+    return;
+  }
   month_.prev_month();
-  show_section(Section::calendar);
+  refresh_marks();
+  show_month();
 }
 
 void MainWindow::on_next()
 {
+  if (cal_view_ == CalView::spread && pages_.get_visible_child_name() == "spread") {
+    spread_.next_spread();
+    show_section(Section::calendar);
+    return;
+  }
   month_.next_month();
-  show_section(Section::calendar);
+  refresh_marks();
+  show_month();
 }
 
 void MainWindow::on_day(const Glib::Date& date)
 {
-  char buf[64];
-  g_date_strftime(buf, sizeof(buf), "%A %d %B %Y", const_cast<GDate*>(date.gobj()));
-  status_.pop(status_ctx_);
-  status_.push(Glib::ustring("Day spread for ") + buf + " — comes in M1.", status_ctx_);
+  show_spread(date);
+}
+
+void MainWindow::on_binder_changed()
+{
+  update_title();
+  refresh_marks();
+}
+
+void MainWindow::show_error(const Glib::ustring& message)
+{
+  Gtk::MessageDialog dlg(*this, message, false, Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
+  dlg.set_title("Ephemeris");
+  dlg.run();
+}
+
+bool MainWindow::confirm_discard()
+{
+  if (!binder_.is_open() || !binder_.dirty())
+    return true;
+  Gtk::MessageDialog dlg(*this, "Save changes to " + binder_.display_name() + "?", false,
+                         Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_NONE, true);
+  dlg.set_title("Ephemeris");
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Discard", Gtk::RESPONSE_REJECT);
+  dlg.add_button("_Save", Gtk::RESPONSE_ACCEPT);
+  dlg.set_default_response(Gtk::RESPONSE_ACCEPT);
+  const int resp = dlg.run();
+  if (resp == Gtk::RESPONSE_ACCEPT)
+    return do_save();
+  return resp == Gtk::RESPONSE_REJECT;
+}
+
+std::string MainWindow::ensure_suffix(const std::string& path) const
+{
+  const std::string suf = ".ephemeris";
+  if (path.size() >= suf.size() &&
+      path.compare(path.size() - suf.size(), suf.size(), suf) == 0)
+    return path;
+  return path + suf;
+}
+
+std::string MainWindow::samples_dir() const
+{
+  const std::string p = std::string(SOURCE_ROOT) + "/data/samples";
+  if (Glib::file_test(p, Glib::FILE_TEST_IS_DIR))
+    return p;
+  return Glib::get_home_dir();
+}
+
+bool MainWindow::do_save()
+{
+  if (!binder_.is_open())
+    return true;
+  if (binder_.path().empty())
+    return do_save_as();
+  if (!binder_.save()) {
+    show_error(binder_.error().empty() ? "Could not save." : binder_.error());
+    return false;
+  }
+  update_title();
+  return true;
+}
+
+bool MainWindow::do_save_as()
+{
+  if (!binder_.is_open())
+    return false;
+  Gtk::FileChooserDialog dlg(*this, "Save Binder", Gtk::FILE_CHOOSER_ACTION_SAVE);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Save", Gtk::RESPONSE_ACCEPT);
+  dlg.set_do_overwrite_confirmation(true);
+  auto filter = Gtk::FileFilter::create();
+  filter->set_name("Ephemeris binder");
+  filter->add_pattern("*.ephemeris");
+  dlg.add_filter(filter);
+  if (!binder_.path().empty())
+    dlg.set_filename(binder_.path());
+  else {
+    dlg.set_current_folder(Glib::get_home_dir());
+    dlg.set_current_name("Untitled.ephemeris");
+  }
+  if (dlg.run() != Gtk::RESPONSE_ACCEPT)
+    return false;
+  const std::string path = ensure_suffix(dlg.get_filename());
+  dlg.hide();
+  if (!binder_.save_as(path)) {
+    show_error(binder_.error().empty() ? "Could not save." : binder_.error());
+    return false;
+  }
+  update_title();
+  return true;
+}
+
+void MainWindow::on_new()
+{
+  if (!confirm_discard())
+    return;
+  binder_.create_new();
+  spread_.set_binder(&binder_);
+  month_.today();
+  refresh_marks();
+  show_month();
+  update_title();
+}
+
+void MainWindow::on_open()
+{
+  if (!confirm_discard())
+    return;
+  Gtk::FileChooserDialog dlg(*this, "Open Binder", Gtk::FILE_CHOOSER_ACTION_OPEN);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Open", Gtk::RESPONSE_ACCEPT);
+  auto filter = Gtk::FileFilter::create();
+  filter->set_name("Ephemeris binder");
+  filter->add_pattern("*.ephemeris");
+  dlg.add_filter(filter);
+  dlg.set_current_folder(samples_dir());
+  if (dlg.run() != Gtk::RESPONSE_ACCEPT)
+    return;
+  const std::string path = dlg.get_filename();
+  dlg.hide();
+  if (!binder_.open(path)) {
+    show_error(binder_.error().empty() ? "Could not open binder." : binder_.error());
+    return;
+  }
+  spread_.set_binder(&binder_);
+  month_.today();
+  refresh_marks();
+  show_month();
+  update_title();
+}
+
+void MainWindow::on_save()
+{
+  do_save();
+}
+
+void MainWindow::on_save_as()
+{
+  do_save_as();
 }
 
 void MainWindow::on_quit()
 {
+  if (!confirm_discard())
+    return;
   hide();
+}
+
+bool MainWindow::on_delete_event(GdkEventAny* event)
+{
+  if (!confirm_discard())
+    return true;
+  return Gtk::Window::on_delete_event(event);
 }
 
 void MainWindow::on_about()
@@ -209,8 +425,7 @@ void MainWindow::on_about()
 
 void MainWindow::on_not_yet(const Glib::ustring& feature)
 {
-  status_.pop(status_ctx_);
-  status_.push(feature + " — coming in a later milestone.", status_ctx_);
+  set_status(feature + " — coming in a later milestone.");
 }
 
 }  // namespace ephemeris

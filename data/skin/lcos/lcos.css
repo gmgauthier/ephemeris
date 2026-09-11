@@ -40,6 +40,25 @@ window.ephemeris-window {
   color: #A0A0A0;
 }
 
+.ephemeris-day-busy {
+  border-bottom: 2px solid #0B1D38;
+}
+
+.ephemeris-day-today.ephemeris-day-busy {
+  border-bottom: 2px solid #E8F2FF;
+}
+
+.ephemeris-slot {
+  background-color: #F7F5EF;
+  color: #1A1A1A;
+  padding: 3px 6px;
+  border-bottom: 1px solid #E0DCD0;
+}
+
+.ephemeris-slot-busy {
+  background-color: #E8F2FF;
+}
+
 .ephemeris-tab {
   padding: 6px 8px;
   font-weight: bold;

@@ -12,6 +12,7 @@ project(
 )
 
 gtkmm = dependency('gtkmm-3.0')
+libxml = dependency('libxml-2.0')
 
 conf = configuration_data()
 conf.set_quoted('VERSION', meson.project_version())
@@ -37,8 +38,10 @@ executable(
   'src/tab_strip.cpp',
   'src/month_page.cpp',
   'src/todo_page.cpp',
+  'src/binder.cpp',
+  'src/day_spread.cpp',
   include_directories: inc,
-  dependencies: [gtkmm],
+  dependencies: [gtkmm, libxml],
   install: true,
   install_dir: get_option('bindir'),
 )
