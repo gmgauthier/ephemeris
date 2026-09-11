@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" width="720" height="480" role="img" aria-label="Ephemeris month page">
+  <rect width="720" height="480" fill="#C0C0C0"/>
+  <rect x="5" y="5" width="710" height="22" fill="#1660C4"/>
+  <text x="14" y="20" font-family="Tahoma, sans-serif" font-size="12" font-weight="700" fill="#FFF">Ephemeris</text>
+  <rect x="5" y="27" width="710" height="22" fill="#C0C0C0"/>
+  <text x="14" y="42" font-family="Tahoma, sans-serif" font-size="12" fill="#000">File   Edit   Section   Help</text>
+  <rect x="28" y="56" width="600" height="400" fill="#F7F5EF"/>
+  <rect x="5" y="56" width="24" height="400" fill="#C0C0C0"/>
+  <ellipse cx="17" cy="140" rx="8" ry="10" fill="none" stroke="#666" stroke-width="2"/>
+  <ellipse cx="17" cy="250" rx="8" ry="10" fill="none" stroke="#666" stroke-width="2"/>
+  <ellipse cx="17" cy="360" rx="8" ry="10" fill="none" stroke="#666" stroke-width="2"/>
+  <text x="44" y="84" font-family="Georgia, serif" font-size="20" fill="#0B1D38">September 2026</text>
+  <g font-family="Tahoma, sans-serif" font-size="12" fill="#333">
+    <text x="60" y="110">Mon</text><text x="140" y="110">Tue</text><text x="220" y="110">Wed</text>
+    <text x="300" y="110">Thu</text><text x="380" y="110">Fri</text><text x="460" y="110">Sat</text>
+    <text x="540" y="110">Sun</text>
+  </g>
+  <rect x="628" y="80" width="72" height="72" fill="#F7F5EF" stroke="#0B1D38"/>
+  <text x="640" y="122" font-family="Tahoma" font-size="12" fill="#0B1D38">Calendar</text>
+  <rect x="628" y="156" width="72" height="72" fill="#6B2D3C"/>
+  <text x="644" y="198" font-family="Tahoma" font-size="12" fill="#E8F2FF">To Do</text>
+</svg>

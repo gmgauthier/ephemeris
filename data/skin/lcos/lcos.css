@@ -1,0 +1,63 @@
+/* Ephemeris lcos skin — GTK3 CSS. Paper page, not Adwaita agenda. */
+
+window.ephemeris-window {
+  background-color: #C0C0C0;
+}
+
+.ephemeris-page {
+  background-color: #F7F5EF;
+}
+
+.ephemeris-month-head {
+  color: #0B1D38;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.ephemeris-dow {
+  color: #333333;
+  font-weight: bold;
+}
+
+.ephemeris-day {
+  background-color: #F7F5EF;
+  color: #1A1A1A;
+  padding: 4px;
+}
+
+.ephemeris-day:hover {
+  background-color: #E8E4D8;
+}
+
+.ephemeris-day-today {
+  background-color: #E8F2FF;
+  font-weight: bold;
+}
+
+.ephemeris-day-out {
+  color: #A0A0A0;
+}
+
+.ephemeris-tab {
+  padding: 10px 8px;
+  font-weight: bold;
+  color: #E8F2FF;
+}
+
+.ephemeris-tab-cal {
+  background-color: #0B1D38;
+}
+
+.ephemeris-tab-todo {
+  background-color: #6B2D3C;
+}
+
+.ephemeris-tab-active {
+  background-color: #F7F5EF;
+  color: #0B1D38;
+}
+
+.ephemeris-todo-line {
+  color: #888888;
+  padding: 6px 8px;
+}

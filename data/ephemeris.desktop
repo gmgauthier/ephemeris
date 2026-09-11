@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Ephemeris
+Comment=A paper appointment book for The Lunduke Computer Operating System
+Exec=ephemeris
+Icon=ephemeris
+Terminal=false
+Hidden=false
+Categories=GTK;Office;Calendar;
+MimeType=application/x-ephemeris;
+StartupWMClass=ephemeris
+StartupNotify=true
