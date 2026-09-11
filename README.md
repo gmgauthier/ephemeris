@@ -2,11 +2,21 @@
 
 **Vended by Grok Build**
 
+![Ephemeris month page on LCOS](brand/LCOS_ephemeris_calendar.png)
+
 A **paper appointment book** for The Lunduke Computer Operating System (LCOS). The window is Lotus Organizer, not Outlook.
 
 Binary: `ephemeris`. Unlicense.
 
 LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLunduke/LCOS)
+
+![Two-day spread](brand/LCOS_ephemeris_day_pages.png)
+
+![To Do](brand/LCOS_ephemeris_todo.png)
+
+![Contacts](brand/LCOS_ephemeris_contacts.png)
+
+![About](brand/LCOS_ephemeris_about.png)
 
 ## Status
 
