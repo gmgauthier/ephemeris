@@ -41,11 +41,11 @@ window.ephemeris-window {
 }
 
 .ephemeris-day-busy {
-  border-bottom: 2px solid #0B1D38;
+  border-bottom: 4px solid #0B1D38;
 }
 
 .ephemeris-day-today.ephemeris-day-busy {
-  border-bottom: 2px solid #E8F2FF;
+  border-bottom: 4px solid #E8F2FF;
 }
 
 .ephemeris-slot {
