@@ -44,6 +44,9 @@ window.ephemeris-window {
   padding: 6px 8px;
   font-weight: bold;
   color: #E8F2FF;
+  margin: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .ephemeris-tab-cal {

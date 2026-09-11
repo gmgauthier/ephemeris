@@ -26,7 +26,6 @@ MonthPage::MonthPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
   set_border_width(12);
-  set_margin_end(16);
   head_.get_style_context()->add_class("ephemeris-month-head");
   head_.set_halign(Gtk::ALIGN_START);
   pack_start(head_, Gtk::PACK_SHRINK);
@@ -34,7 +33,6 @@ MonthPage::MonthPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
   grid_.set_column_homogeneous(true);
   grid_.set_row_spacing(2);
   grid_.set_column_spacing(2);
-  grid_.set_margin_end(8);
   pack_start(grid_, Gtk::PACK_EXPAND_WIDGET);
 
   Glib::Date now;

@@ -30,6 +30,7 @@ MainWindow::MainWindow()
   tabs_.signal_section().connect(sigc::mem_fun(*this, &MainWindow::show_section));
   month_.signal_day_chosen().connect(sigc::mem_fun(*this, &MainWindow::on_day));
 
+  book_.set_spacing(0);
   book_.pack_start(rings_, Gtk::PACK_SHRINK);
   book_.pack_start(pages_, Gtk::PACK_EXPAND_WIDGET);
   book_.pack_start(tabs_, Gtk::PACK_SHRINK);
