@@ -53,6 +53,7 @@ class Binder {
 
   std::vector<Todo> todos() const;
   std::vector<Todo> todos_due_on(const Glib::Date& date) const;
+  int open_todo_count() const;
   int add_todo(const Todo& t);
   bool update_todo(const Todo& t);
   bool remove_todo(int id);

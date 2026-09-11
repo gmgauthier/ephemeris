@@ -263,6 +263,16 @@ std::vector<Todo> Binder::todos_due_on(const Glib::Date& date) const
   return out;
 }
 
+int Binder::open_todo_count() const
+{
+  int n = 0;
+  for (const auto& t : todos_) {
+    if (!t.done)
+      ++n;
+  }
+  return n;
+}
+
 const Todo* Binder::find_todo(int id) const
 {
   for (const auto& t : todos_) {

@@ -73,6 +73,7 @@ MainWindow::MainWindow()
   signal_hide().connect(sigc::mem_fun(*this, &MainWindow::persist));
   update_title();
   set_status("Calendar — " + month_.title());
+  tabs_.set_open_count(binder_.open_todo_count());
   show_all();
   restore_session();
 }
@@ -281,6 +282,7 @@ void MainWindow::on_binder_changed()
   update_title();
   refresh_marks();
   todo_.refresh();
+  tabs_.set_open_count(binder_.open_todo_count());
   if (cal_view_ == CalView::spread)
     spread_.refresh();
 }
@@ -379,6 +381,7 @@ void MainWindow::on_new()
   todo_.set_binder(&binder_);
   month_.today();
   refresh_marks();
+  tabs_.set_open_count(binder_.open_todo_count());
   show_month();
   update_title();
 }
@@ -407,6 +410,7 @@ void MainWindow::on_open()
   todo_.set_binder(&binder_);
   month_.today();
   refresh_marks();
+  tabs_.set_open_count(binder_.open_todo_count());
   show_month();
   update_title();
 }
@@ -481,6 +485,7 @@ void MainWindow::restore_session()
   }
   refresh_marks();
   update_title();
+  tabs_.set_open_count(binder_.open_todo_count());
   if (settings_.last_cal == "spread")
     cal_view_ = CalView::spread;
   else

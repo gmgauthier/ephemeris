@@ -11,8 +11,8 @@ TabStrip::TabStrip() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
   set_margin_start(0);
   set_margin_end(4);
   set_spacing(6);
-  cal_.set_size_request(72, 48);
-  todo_.set_size_request(72, 48);
+  cal_.set_size_request(80, 48);
+  todo_.set_size_request(80, 48);
   cal_.set_relief(Gtk::RELIEF_NONE);
   todo_.set_relief(Gtk::RELIEF_NONE);
   cal_.set_margin_start(0);
@@ -34,6 +34,20 @@ void TabStrip::set_section(Section s)
 {
   section_ = s;
   restyle();
+}
+
+void TabStrip::set_open_count(int n)
+{
+  open_count_ = n < 0 ? 0 : n;
+  update_todo_label();
+}
+
+void TabStrip::update_todo_label()
+{
+  if (open_count_ > 0)
+    todo_.set_label(Glib::ustring::compose("To Do (%1)", open_count_));
+  else
+    todo_.set_label("To Do");
 }
 
 void TabStrip::on_cal()
