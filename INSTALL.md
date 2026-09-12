@@ -104,7 +104,7 @@ Writes tarball, `.deb`, and AppImage (if `linuxdeploy` is there) under `dist/`. 
 
 ## What this project will not ship
 
-- CalDAV, native `.ics`, or Lotus `.ORG`
+- Mail, CalDAV, native `.ics`, or Lotus `.ORG`
 - vCard import
 - A systemd unit
 - Vendored Clearlooks / xfwm themes

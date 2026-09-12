@@ -22,11 +22,11 @@ Reference window: `brand/ui-reference.svg`
 | Toolkit | C++17, gtkmm-3.0, GTK3 CSS, Meson |
 | Metaphor | One ring-bound book. Section tabs on the right |
 | v1 sections | **Calendar** + **To Do** + **Contacts** |
-| Contacts | First, Last, Phone, Email, Timezone, Notes (1000 plain text). Sort by last name. A–Z jump. Evergreen tab. `@` name completion in appointment and To Do add. No vCard |
-| Parked | Notepad, Planner, Anniversary, Calls, recurrence, alarms, CalDAV, vCard import, standalone Address Book |
+| Contacts | First, Last, Phone, Email (a field, not a mailbox), Timezone, Notes (1000 plain text). Sort by last name. A–Z jump. Evergreen tab. `@` name completion in appointment and To Do add. No vCard |
+| Network | None. No mail, no CalDAV, no online account. Mail is a separate application. |
+| Parked | Notepad, Planner, Anniversary, Calls, recurrence, alarms, vCard import |
 | v1 format | UTF-8 XML, extension `.ephemeris`. libxml2. Not `.ics` native, not Lotus `.ORG` |
 | Calendar | Monday-first month. Two-day spread (M1). 08:00–18:00, 30-minute slots |
-| Network | None |
 | Brand | LCOS beige / navy. No Bryan’s seal |
 | License | The Unlicense |
 
@@ -43,6 +43,7 @@ Reference window: `brand/ui-reference.svg`
 ## 3. Traps
 
 - Evolution / CalDAV / native `.ics`
+- Mail, IMAP, SMTP, or any online account
 - vCard import, YOLO-dex index cards, day-page contact show-through
 - Photoreal leather
 - Custom title bar; do not override `GTK_THEME`
