@@ -95,9 +95,9 @@ ContactDlg run_contact_dialog(Gtk::Window& parent, Contact& c, bool existing)
 
   box->pack_start(*tz, Gtk::PACK_SHRINK);
 
-  box->pack_start(*Gtk::manage(new Gtk::Label("Notes (plain text, 1000 characters)",
-                                              Gtk::ALIGN_START)),
-                  Gtk::PACK_SHRINK);
+  box->pack_start(
+      *Gtk::manage(new Gtk::Label("Notes (plain text, 1000 characters)", Gtk::ALIGN_START)),
+      Gtk::PACK_SHRINK);
   auto* notes = Gtk::manage(new Gtk::TextView());
   notes->set_wrap_mode(Gtk::WRAP_WORD_CHAR);
   notes->get_buffer()->set_text(c.notes);
@@ -128,7 +128,8 @@ ContactDlg run_contact_dialog(Gtk::Window& parent, Contact& c, bool existing)
 
 }  // namespace
 
-ContactsPage::ContactsPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
+ContactsPage::ContactsPage()
+    : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
   set_margin_start(16);

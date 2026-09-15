@@ -14,7 +14,10 @@ class TabStrip : public Gtk::Box {
 
   void set_section(Section s);
   void set_open_count(int n);
-  sigc::signal<void, Section>& signal_section() { return signal_section_; }
+  sigc::signal<void, Section>& signal_section()
+  {
+    return signal_section_;
+  }
 
  private:
   void on_cal();

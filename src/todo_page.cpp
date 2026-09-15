@@ -62,8 +62,7 @@ TodoDlg run_todo_dialog(Gtk::Window& parent, Todo& t, bool existing, Binder* bin
   calendar_set(*cal, seed);
   due_on->set_active(t.has_due);
   cal->set_sensitive(due_on->get_active());
-  due_on->signal_toggled().connect(
-      [due_on, cal]() { cal->set_sensitive(due_on->get_active()); });
+  due_on->signal_toggled().connect([due_on, cal]() { cal->set_sensitive(due_on->get_active()); });
 
   auto* row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
   row->pack_start(*Gtk::manage(new Gtk::Label("Priority")), Gtk::PACK_SHRINK);
@@ -92,7 +91,8 @@ TodoDlg run_todo_dialog(Gtk::Window& parent, Todo& t, bool existing, Binder* bin
 
 }  // namespace
 
-TodoPage::TodoPage() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
+TodoPage::TodoPage()
+    : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
   set_margin_start(16);

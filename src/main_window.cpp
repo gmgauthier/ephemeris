@@ -18,9 +18,8 @@
 namespace ephemeris {
 namespace {
 
-void show_line(const Cairo::RefPtr<Cairo::Context>& cr,
-               const Glib::RefPtr<Pango::Layout>& layout, double x, double& y,
-               const Glib::ustring& text, bool bold = false)
+void show_line(const Cairo::RefPtr<Cairo::Context>& cr, const Glib::RefPtr<Pango::Layout>& layout,
+               double x, double& y, const Glib::ustring& text, bool bold = false)
 {
   Pango::FontDescription desc;
   desc.set_family("Serif");
@@ -159,8 +158,8 @@ void MainWindow::load_css()
   try {
     auto css = Gtk::CssProvider::create();
     css->load_from_path(css_path);
-    Gtk::StyleContext::add_provider_for_screen(
-        Gdk::Screen::get_default(), css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    Gtk::StyleContext::add_provider_for_screen(Gdk::Screen::get_default(), css,
+                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   } catch (const Glib::Error& e) {
     std::cerr << "ephemeris: CSS: " << e.what() << "\n";
   }
@@ -187,8 +186,7 @@ void MainWindow::build_menu()
   };
 
   auto* file = Gtk::manage(new Gtk::Menu());
-  add_item(*file, "_New", sigc::mem_fun(*this, &MainWindow::on_new), GDK_KEY_n,
-           Gdk::CONTROL_MASK);
+  add_item(*file, "_New", sigc::mem_fun(*this, &MainWindow::on_new), GDK_KEY_n, Gdk::CONTROL_MASK);
   add_item(*file, "_Open…", sigc::mem_fun(*this, &MainWindow::on_open), GDK_KEY_o,
            Gdk::CONTROL_MASK);
   add_item(*file, "_Save", sigc::mem_fun(*this, &MainWindow::on_save), GDK_KEY_s,
@@ -297,8 +295,7 @@ void MainWindow::show_section(Section s)
     if (cal_view_ == CalView::spread) {
       pages_.set_visible_child("spread");
       char buf[64];
-      g_date_strftime(buf, sizeof(buf), "%A %d %B",
-                      const_cast<GDate*>(spread_.left_date().gobj()));
+      g_date_strftime(buf, sizeof(buf), "%A %d %B", const_cast<GDate*>(spread_.left_date().gobj()));
       set_status(Glib::ustring("Calendar — ") + buf);
     } else {
       pages_.set_visible_child("month");
@@ -413,8 +410,7 @@ bool MainWindow::confirm_discard()
 std::string MainWindow::ensure_suffix(const std::string& path) const
 {
   const std::string suf = ".ephemeris";
-  if (path.size() >= suf.size() &&
-      path.compare(path.size() - suf.size(), suf.size(), suf) == 0)
+  if (path.size() >= suf.size() && path.compare(path.size() - suf.size(), suf.size(), suf) == 0)
     return path;
   return path + suf;
 }
@@ -617,8 +613,7 @@ bool MainWindow::in_editable_focus() const
   auto* focus = get_focus();
   if (!focus)
     return false;
-  return dynamic_cast<const Gtk::Entry*>(focus) ||
-         dynamic_cast<const Gtk::TextView*>(focus);
+  return dynamic_cast<const Gtk::Entry*>(focus) || dynamic_cast<const Gtk::TextView*>(focus);
 }
 
 void MainWindow::on_print()
@@ -650,9 +645,8 @@ void MainWindow::on_print_day()
   auto op = Gtk::PrintOperation::create();
   op->set_job_name("Ephemeris day");
   op->set_embed_page_setup(true);
-  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
-    op->set_n_pages(1);
-  });
+  op->signal_begin_print().connect(
+      [op](const Glib::RefPtr<Gtk::PrintContext>&) { op->set_n_pages(1); });
   op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
     auto cr = ctx->get_cairo_context();
     cr->set_source_rgb(1, 1, 1);
@@ -695,9 +689,8 @@ void MainWindow::on_print_month()
   auto op = Gtk::PrintOperation::create();
   op->set_job_name("Ephemeris month");
   op->set_embed_page_setup(true);
-  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
-    op->set_n_pages(1);
-  });
+  op->signal_begin_print().connect(
+      [op](const Glib::RefPtr<Gtk::PrintContext>&) { op->set_n_pages(1); });
   op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
     auto cr = ctx->get_cairo_context();
     const double pw = ctx->get_width();
@@ -776,9 +769,8 @@ void MainWindow::on_print_todos()
   auto op = Gtk::PrintOperation::create();
   op->set_job_name("Ephemeris to do");
   op->set_embed_page_setup(true);
-  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
-    op->set_n_pages(1);
-  });
+  op->signal_begin_print().connect(
+      [op](const Glib::RefPtr<Gtk::PrintContext>&) { op->set_n_pages(1); });
   op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
     auto cr = ctx->get_cairo_context();
     cr->set_source_rgb(1, 1, 1);
@@ -818,9 +810,8 @@ void MainWindow::on_print_contacts()
   auto op = Gtk::PrintOperation::create();
   op->set_job_name("Ephemeris contacts");
   op->set_embed_page_setup(true);
-  op->signal_begin_print().connect([op](const Glib::RefPtr<Gtk::PrintContext>&) {
-    op->set_n_pages(1);
-  });
+  op->signal_begin_print().connect(
+      [op](const Glib::RefPtr<Gtk::PrintContext>&) { op->set_n_pages(1); });
   op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int) {
     auto cr = ctx->get_cairo_context();
     cr->set_source_rgb(1, 1, 1);

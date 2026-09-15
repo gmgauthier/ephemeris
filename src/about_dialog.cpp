@@ -22,13 +22,12 @@ AboutDialog::AboutDialog(Gtk::Window& parent)
   line->set_line_wrap(true);
   line->set_max_width_chars(52);
   box->pack_start(*line, Gtk::PACK_SHRINK);
-  auto* guest = Gtk::manage(new Gtk::Label(
-      "Third-party software written for LCOS. Not LCOS house software."));
+  auto* guest = Gtk::manage(
+      new Gtk::Label("Third-party software written for LCOS. Not LCOS house software."));
   guest->set_line_wrap(true);
   guest->set_max_width_chars(52);
   box->pack_start(*guest, Gtk::PACK_SHRINK);
-  box->pack_start(*Gtk::manage(new Gtk::Label("Released under The Unlicense.")),
-                  Gtk::PACK_SHRINK);
+  box->pack_start(*Gtk::manage(new Gtk::Label("Released under The Unlicense.")), Gtk::PACK_SHRINK);
   show_all_children();
 }
 
