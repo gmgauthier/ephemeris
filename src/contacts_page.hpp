@@ -17,7 +17,10 @@ class ContactsPage : public Gtk::Box {
   void set_binder(Binder* b);
   void refresh();
 
-  sigc::signal<void>& signal_changed() { return signal_changed_; }
+  sigc::signal<void>& signal_changed()
+  {
+    return signal_changed_;
+  }
 
  private:
   void on_add_contact();

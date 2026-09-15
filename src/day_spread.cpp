@@ -23,7 +23,8 @@ const Appointment* covering(const std::vector<Appointment>& list, int mins)
 
 }  // namespace
 
-DaySpread::DaySpread() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
+DaySpread::DaySpread()
+    : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
 {
   get_style_context()->add_class("ephemeris-page");
   set_margin_start(16);

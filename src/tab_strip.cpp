@@ -4,7 +4,8 @@
 
 namespace ephemeris {
 
-TabStrip::TabStrip() : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
+TabStrip::TabStrip()
+    : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4)
 {
   set_valign(Gtk::ALIGN_START);
   set_margin_top(28);

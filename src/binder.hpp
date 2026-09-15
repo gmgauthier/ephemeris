@@ -47,10 +47,22 @@ struct Contact {
 
 class Binder {
  public:
-  bool is_open() const { return open_; }
-  bool dirty() const { return dirty_; }
-  const std::string& path() const { return path_; }
-  const std::string& error() const { return error_; }
+  bool is_open() const
+  {
+    return open_;
+  }
+  bool dirty() const
+  {
+    return dirty_;
+  }
+  const std::string& path() const
+  {
+    return path_;
+  }
+  const std::string& error() const
+  {
+    return error_;
+  }
   std::string display_name() const;
 
   void close();

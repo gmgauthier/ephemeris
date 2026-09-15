@@ -18,11 +18,20 @@ class MonthPage : public Gtk::Box {
   void prev_month();
   void next_month();
   void set_marks(std::set<int> days);
-  Glib::Date::Month month() const { return month_; }
-  Glib::Date::Year year() const { return year_; }
+  Glib::Date::Month month() const
+  {
+    return month_;
+  }
+  Glib::Date::Year year() const
+  {
+    return year_;
+  }
   Glib::ustring title() const;
 
-  sigc::signal<void, Glib::Date>& signal_day_chosen() { return signal_day_chosen_; }
+  sigc::signal<void, Glib::Date>& signal_day_chosen()
+  {
+    return signal_day_chosen_;
+  }
 
  private:
   void rebuild();
