@@ -79,13 +79,11 @@ void attach_mentions(Gtk::Entry& entry, Binder* binder)
     if (at < 0)
       return false;
     const int pos = entry.get_position();
-    const Glib::ustring frag =
-        (pos > at + 1) ? text.substr(at + 1, pos - at - 1) : Glib::ustring();
+    const Glib::ustring frag = (pos > at + 1) ? text.substr(at + 1, pos - at - 1) : Glib::ustring();
     const Glib::ustring display = (*iter)[cols().display];
     const Glib::ustring first = (*iter)[cols().first];
     const Glib::ustring last = (*iter)[cols().last];
-    if (starts_folded(display, frag) || starts_folded(first, frag) ||
-        starts_folded(last, frag))
+    if (starts_folded(display, frag) || starts_folded(first, frag) || starts_folded(last, frag))
       return true;
     if (!last.empty() && !first.empty())
       return starts_folded(last + ", " + first, frag);
@@ -105,10 +103,9 @@ void attach_mentions(Gtk::Entry& entry, Binder* binder)
       kept = text;
     if (!kept.empty() && !g_unichar_isspace(kept[kept.size() - 1]))
       kept += " ";
-    const Glib::ustring after =
-        at >= 0 && static_cast<Glib::ustring::size_type>(pos) < text.size()
-            ? text.substr(pos)
-            : Glib::ustring();
+    const Glib::ustring after = at >= 0 && static_cast<Glib::ustring::size_type>(pos) < text.size()
+                                    ? text.substr(pos)
+                                    : Glib::ustring();
     entry.set_text(kept + name + after);
     entry.set_position(static_cast<int>(kept.size() + name.size()));
     return true;

@@ -233,9 +233,8 @@ std::vector<Appointment> Binder::for_date(const Glib::Date& date) const
     if (date_eq(a.date, date))
       out.push_back(a);
   }
-  std::sort(out.begin(), out.end(), [](const Appointment& x, const Appointment& y) {
-    return x.start_min < y.start_min;
-  });
+  std::sort(out.begin(), out.end(),
+            [](const Appointment& x, const Appointment& y) { return x.start_min < y.start_min; });
   return out;
 }
 
@@ -377,8 +376,8 @@ bool Binder::update_todo(const Todo& t)
 
 bool Binder::remove_todo(int id)
 {
-  auto it = std::remove_if(todos_.begin(), todos_.end(),
-                           [id](const Todo& t) { return t.id == id; });
+  auto it =
+      std::remove_if(todos_.begin(), todos_.end(), [id](const Todo& t) { return t.id == id; });
   if (it == todos_.end())
     return false;
   todos_.erase(it, todos_.end());
@@ -462,17 +461,17 @@ bool Binder::write_file(const std::string& path) const
        << xml_escape(a.text) << "</appointment>\n";
   }
   for (const auto& t : todos_) {
-    os << "  <todo id=\"" << t.id << "\" done=\"" << (t.done ? "true" : "false")
-       << "\" priority=\"" << t.priority << "\"";
+    os << "  <todo id=\"" << t.id << "\" done=\"" << (t.done ? "true" : "false") << "\" priority=\""
+       << t.priority << "\"";
     if (t.has_due)
       os << " due=\"" << date_iso(t.due) << "\"";
     os << ">" << xml_escape(t.text) << "</todo>\n";
   }
   for (const auto& c : contacts_) {
-    os << "  <contact id=\"" << c.id << "\" first=\"" << xml_escape_attr(c.first)
-       << "\" last=\"" << xml_escape_attr(c.last) << "\" phone=\"" << xml_escape_attr(c.phone)
-       << "\" email=\"" << xml_escape_attr(c.email) << "\" timezone=\""
-       << xml_escape_attr(c.timezone) << "\">" << xml_escape(c.notes) << "</contact>\n";
+    os << "  <contact id=\"" << c.id << "\" first=\"" << xml_escape_attr(c.first) << "\" last=\""
+       << xml_escape_attr(c.last) << "\" phone=\"" << xml_escape_attr(c.phone) << "\" email=\""
+       << xml_escape_attr(c.email) << "\" timezone=\"" << xml_escape_attr(c.timezone) << "\">"
+       << xml_escape(c.notes) << "</contact>\n";
   }
   os << "</ephemeris>\n";
   try {
