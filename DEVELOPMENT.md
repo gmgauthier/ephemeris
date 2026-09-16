@@ -47,7 +47,7 @@ Reference window: `brand/ui-reference.svg`
 - Mail, IMAP, SMTP, or any online account
 - vCard import, YOLO-dex index cards, day-page contact show-through
 - Photoreal leather
-- Custom title bar; do not override `GTK_THEME`
+- Custom title bar. `GTK_THEME` in the environment still wins; else Clearlooks-Phenix, then Clearlooks, then Adwaita:light (process only)
 
 ## Process
 

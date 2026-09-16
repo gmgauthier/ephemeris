@@ -26,7 +26,7 @@ Nothing queued. v1 (M0–M5, including Contacts) is tagged. Parked sections live
 - Day-page contact show-through
 - YOLO-dex index cards (people records already live here as Contacts)
 - Photoreal leather
-- Custom title bar; do not override `GTK_THEME`
+- Custom title bar. `GTK_THEME` in the environment still wins; else Clearlooks-Phenix, then Clearlooks, then Adwaita:light (process only)
 - Bryan’s seal
 
 ## Shipped
