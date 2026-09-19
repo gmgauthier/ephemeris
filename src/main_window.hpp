@@ -6,6 +6,8 @@
 #include "contacts_page.hpp"
 #include "day_spread.hpp"
 #include "month_page.hpp"
+#include "notepad_page.hpp"
+#include "planner_page.hpp"
 #include "remote_cal.hpp"
 #include "rings.hpp"
 #include "settings.hpp"
@@ -62,6 +64,8 @@ class MainWindow : public Gtk::Window {
   void on_print_month();
   void on_print_todos();
   void on_print_contacts();
+  void on_import_vcard();
+  void on_export_vcard();
   void on_subscribe_cal();
   void on_unsubscribe_cal();
   void on_refresh_cals();
@@ -91,6 +95,8 @@ class MainWindow : public Gtk::Window {
   DaySpread spread_;
   TodoPage todo_;
   ContactsPage contacts_;
+  PlannerPage planner_;
+  NotepadPage notepad_;
   TabStrip tabs_;
   Gtk::Statusbar status_;
   guint status_ctx_ = 0;
@@ -99,6 +105,8 @@ class MainWindow : public Gtk::Window {
   Gtk::RadioMenuItem* cal_item_ = nullptr;
   Gtk::RadioMenuItem* todo_item_ = nullptr;
   Gtk::RadioMenuItem* contacts_item_ = nullptr;
+  Gtk::RadioMenuItem* planner_item_ = nullptr;
+  Gtk::RadioMenuItem* notepad_item_ = nullptr;
   bool suppress_section_ = false;
   enum class CalView { month, spread };
   CalView cal_view_ = CalView::month;

@@ -118,9 +118,65 @@ window.ephemeris-window {
   background-color: #1B4D3E;
 }
 
+.ephemeris-tab-planner {
+  background-color: #8A5A2B;
+}
+
+.ephemeris-tab-notepad {
+  background-color: #3D4A6B;
+}
+
+.ephemeris-planner-day {
+  background-color: #F7F5EF;
+  color: #1A1A1A;
+  border: 1px solid #D4CFC4;
+  font-size: 11px;
+}
+
+.ephemeris-planner-day label {
+  color: #1A1A1A;
+  font-size: 11px;
+}
+
+.ephemeris-planner-hit label {
+  color: #FFFFFF;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.ephemeris-planner-key,
+.ephemeris-planner-key label {
+  color: #FFFFFF;
+  font-weight: bold;
+  background-image: none;
+}
+
+.ephemeris-planner-key-0 { background-color: #C45C4A; }
+.ephemeris-planner-key-1 { background-color: #1660C4; }
+.ephemeris-planner-key-2 { background-color: #1B4D3E; }
+.ephemeris-planner-key-3 { background-color: #B8860B; }
+.ephemeris-planner-key-3,
+.ephemeris-planner-key-3 label { color: #0B1D38; }
+.ephemeris-planner-key-4 { background-color: #5C4A6B; }
+
+.ephemeris-planner-hit-0 { background-color: #C45C4A; }
+.ephemeris-planner-hit-1 { background-color: #1660C4; }
+.ephemeris-planner-hit-2 { background-color: #1B4D3E; }
+.ephemeris-planner-hit-3 { background-color: #B8860B; }
+.ephemeris-planner-hit-4 { background-color: #5C4A6B; }
+
+.ephemeris-planner-key-on {
+  border: 2px solid #0B1D38;
+}
+
 .ephemeris-tab-active {
   background-color: #F7F5EF;
   color: #0B1D38;
+}
+
+.ephemeris-note-stamp {
+  color: #5A564C;
+  font-size: 11px;
 }
 
 .ephemeris-todo-line {

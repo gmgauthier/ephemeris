@@ -6,17 +6,19 @@ Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite 
 
 ## High Priority
 
-None. v0.2.0 is the current ship.
+- **Recurrence.** Local appointments: daily / weekly / monthly / yearly, interval, optional until. Edit/delete the series (not one instance). Remote ICS already expands RRULE. In this tree.
+- **Planner section.** Lotus Organizer year wall-chart: months as rows, day cells, colour blocks for multi-day events. Show through on Calendar. In this tree.
+
+## Next
+
+- Notepad section — in this tree (list + page body).
+- vCard import / export — in this tree (File menu; N/TEL/EMAIL/NOTE).
 
 ## Low Priority
 
-- Notepad section
-- Planner section
 - Anniversary section
 - Calls section
-- Recurrence
 - Alarms
-- vCard import
 
 ## Out of Scope
 
