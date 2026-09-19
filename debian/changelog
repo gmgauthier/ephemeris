@@ -1,3 +1,10 @@
+ephemeris (0.2.0-1) unstable; urgency=medium
+
+  * Subscribe HTTPS iCalendar URLs as a read-only overlay on Calendar.
+    No CalDAV. Share-link keys stay in 0600 ini, not the binder.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sat, 19 Sep 2026 19:35:00 +0100
+
 ephemeris (0.1.2-1) unstable; urgency=medium
 
   * Save the current binder path on Open and Save As so other apps can
