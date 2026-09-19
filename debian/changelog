@@ -1,3 +1,10 @@
+ephemeris (0.3.0-1) unstable; urgency=medium
+
+  * Planner section, local appointment recurrence, Notepad pages with
+    timestamps, and vCard import/export.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sat, 19 Sep 2026 20:20:00 +0100
+
 ephemeris (0.2.0-1) unstable; urgency=medium
 
   * Subscribe HTTPS iCalendar URLs as a read-only overlay on Calendar.

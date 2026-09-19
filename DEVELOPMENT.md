@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-09-19)
 
-**v0.2.0.** HTTPS iCalendar subscribe (read-only overlay). Tags `v0.1.0`, `v0.1.1`, `v0.1.2`, `v0.2.0`.
+**v0.3.0.** Planner, recurrence, Notepad, vCard. Tags through `v0.3.0`.
 
 ## 1. Locked decisions
 

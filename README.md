@@ -20,7 +20,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v0.2.0.** Lotus Organizer-shaped binder plus HTTPS iCalendar subscribe (read-only overlay). See [INSTALL.md](INSTALL.md).
+**v0.3.0.** Planner, recurrence, Notepad, vCard, and HTTPS iCalendar subscribe. See [INSTALL.md](INSTALL.md).
 
 | Doc | What |
 |---|---|
