@@ -9,6 +9,7 @@ namespace ephemeris {
 class Application : public Gtk::Application {
  public:
   static Glib::RefPtr<Application> create();
+  ~Application() override;
 
  protected:
   Application();
@@ -17,8 +18,16 @@ class Application : public Gtk::Application {
 
  private:
   bool take_instance_lock();
+  void listen_socket();
+  void close_socket();
+  bool send_present() const;
+  bool on_listen_io(Glib::IOCondition cond);
+  void present_windows();
+
   int lock_fd_ = -1;
+  int listen_fd_ = -1;
   bool lock_ok_ = true;
+  sigc::connection listen_conn_;
 };
 
 }  // namespace ephemeris
