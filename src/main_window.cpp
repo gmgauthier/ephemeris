@@ -463,6 +463,7 @@ bool MainWindow::do_save_as()
     show_error(binder_.error().empty() ? "Could not save." : binder_.error());
     return false;
   }
+  persist();
   update_title();
   return true;
 }
@@ -509,6 +510,7 @@ void MainWindow::on_open()
   refresh_marks();
   tabs_.set_open_count(binder_.open_todo_count());
   show_month();
+  persist();
   update_title();
 }
 
