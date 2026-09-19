@@ -6,6 +6,7 @@
 #include "contacts_page.hpp"
 #include "day_spread.hpp"
 #include "month_page.hpp"
+#include "remote_cal.hpp"
 #include "rings.hpp"
 #include "settings.hpp"
 #include "tab_strip.hpp"
@@ -13,11 +14,16 @@
 
 #include <gtkmm.h>
 
+#include <mutex>
+#include <thread>
+#include <vector>
+
 namespace ephemeris {
 
 class MainWindow : public Gtk::Window {
  public:
   MainWindow();
+  ~MainWindow() override;
 
  private:
   void load_css();
@@ -56,6 +62,12 @@ class MainWindow : public Gtk::Window {
   void on_print_month();
   void on_print_todos();
   void on_print_contacts();
+  void on_subscribe_cal();
+  void on_unsubscribe_cal();
+  void on_refresh_cals();
+  void start_cal_fetch();
+  void on_cal_fetch_done();
+  void sync_cal_settings();
   bool in_editable_focus() const;
 
   Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label,
@@ -92,6 +104,17 @@ class MainWindow : public Gtk::Window {
   CalView cal_view_ = CalView::month;
   Binder binder_;
   Settings settings_;
+  RemoteCalendars remotes_;
+  Glib::Dispatcher cal_done_;
+  std::thread cal_thread_;
+  std::mutex cal_mutex_;
+  struct CalFetch {
+    std::string url;
+    std::string body;
+    std::string error;
+  };
+  std::vector<CalFetch> cal_results_;
+  bool cal_fetching_ = false;
 };
 
 }  // namespace ephemeris

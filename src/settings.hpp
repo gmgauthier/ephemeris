@@ -3,8 +3,14 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace ephemeris {
+
+struct CalSub {
+  std::string url;
+  std::string title;
+};
 
 struct Settings {
   int window_x = -1;
@@ -15,6 +21,7 @@ struct Settings {
   std::string last_section = "calendar";
   std::string last_cal = "month";
   std::string last_date;
+  std::vector<CalSub> calendars;
 
   void load();
   void save() const;

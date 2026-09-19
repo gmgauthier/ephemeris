@@ -3,6 +3,7 @@
 #pragma once
 
 #include "binder.hpp"
+#include "remote_cal.hpp"
 
 #include <gtkmm.h>
 #include <glibmm/date.h>
@@ -14,6 +15,7 @@ class DaySpread : public Gtk::Box {
   DaySpread();
 
   void set_binder(Binder* b);
+  void set_remote(RemoteCalendars* r);
   void set_left_date(const Glib::Date& d);
   Glib::Date left_date() const
   {
@@ -36,8 +38,10 @@ class DaySpread : public Gtk::Box {
  private:
   Gtk::Widget* build_day(const Glib::Date& date, bool right);
   void edit_slot(const Glib::Date& date, int start_min, int appt_id);
+  void show_remote(const Appointment& a);
 
   Binder* binder_ = nullptr;
+  RemoteCalendars* remote_ = nullptr;
   Glib::Date left_;
   Gtk::Box cols_{Gtk::ORIENTATION_HORIZONTAL, 16};
   sigc::signal<void> signal_changed_;

@@ -14,12 +14,12 @@ Version comes from `meson.build` (currently `0.1.2`).
 ## Runtime needs
 
 - GTK 3 / gtkmm-3.0
-- libxml2
+- libxml2, **libsoup-3.0**, **glib-networking** (HTTPS calendar URLs)
 
 On Debian / Devuan / LCOS:
 
 ```
-sudo apt install libgtkmm-3.0-1t64 libxml2
+sudo apt install libgtkmm-3.0-1t64 libxml2 libsoup-3.0-0 glib-networking
 ```
 
 (Package names on older Debian may be `libgtkmm-3.0-1v5`.)
@@ -59,7 +59,7 @@ Uninstall: `sudo apt remove ephemeris`.
 tar -xf ephemeris-0.1.2.tar.xz
 cd ephemeris-0.1.2
 sudo apt install build-essential meson ninja-build pkg-config \
-  libgtkmm-3.0-dev libxml2-dev
+  libgtkmm-3.0-dev libxml2-dev libsoup-3.0-dev
 meson setup build --prefix=/usr
 meson compile -C build
 sudo meson install -C build
