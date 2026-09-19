@@ -1,3 +1,11 @@
+ephemeris (0.1.2-1) unstable; urgency=medium
+
+  * Save the current binder path on Open and Save As so other apps can
+    read it from ephemeris.ini while Ephemeris is still open.
+  * Present the existing window on a second launch.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sat, 19 Sep 2026 14:00:00 +0100
+
 ephemeris (0.1.1-1) unstable; urgency=medium
 
   * Standardize GTK theming for LCOS: Clearlooks-Phenix, then Clearlooks, then Adwaita:light.
