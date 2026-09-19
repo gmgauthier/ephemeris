@@ -215,6 +215,32 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
   col->pack_start(*scroll, Gtk::PACK_EXPAND_WIDGET);
 
   if (binder_) {
+    const auto blocks = binder_->planner_on(date);
+    if (!blocks.empty()) {
+      auto* thru = Gtk::manage(new Gtk::Label());
+      thru->set_markup("<b>Planner</b>");
+      thru->set_halign(Gtk::ALIGN_START);
+      thru->get_style_context()->add_class("ephemeris-showthrough");
+      col->pack_start(*thru, Gtk::PACK_SHRINK);
+      const auto keys = binder_->planner_keys();
+      for (const auto& p : blocks) {
+        Glib::ustring line = keys[static_cast<size_t>(p.category)];
+        if (!p.text.empty()) {
+          line += " — ";
+          line += p.text;
+        }
+        auto* lab = Gtk::manage(new Gtk::Label(line));
+        lab->set_xalign(0.0);
+        lab->set_ellipsize(Pango::ELLIPSIZE_END);
+        auto* ev = Gtk::manage(new Gtk::EventBox());
+        ev->override_background_color(Gdk::RGBA(planner_color(p.category)));
+        ev->add(*lab);
+        col->pack_start(*ev, Gtk::PACK_SHRINK);
+      }
+    }
+  }
+
+  if (binder_) {
     const auto due = binder_->todos_due_on(date);
     if (!due.empty()) {
       auto* thru = Gtk::manage(new Gtk::Label());
@@ -289,24 +315,58 @@ void DaySpread::edit_slot(const Glib::Date& date, int start_min, int appt_id)
   box->pack_start(*text, Gtk::PACK_SHRINK);
   auto* start = Gtk::manage(new Gtk::ComboBoxText());
   auto* end = Gtk::manage(new Gtk::ComboBoxText());
-  for (int m = kDayStart; m <= kDayEnd; m += kStep) {
+  constexpr int kComboStart = 7 * 60;
+  constexpr int kComboEnd = 22 * 60;
+  for (int m = kComboStart; m <= kComboEnd; m += kStep) {
     const Glib::ustring hm = format_hm(m);
-    if (m < kDayEnd)
-      start->append(hm);
-    if (m > kDayStart)
+    start->append(hm);
+    if (m > kComboStart)
       end->append(hm);
   }
   start->set_active_text(format_hm(edited.start_min));
+  if (start->get_active_text().empty())
+    start->set_active_text(format_hm(kDayStart));
   int e = edited.end_min <= edited.start_min ? edited.start_min + kStep : edited.end_min;
-  if (e > kDayEnd)
-    e = kDayEnd;
   end->set_active_text(format_hm(e));
+  if (end->get_active_text().empty())
+    end->set_active_text(format_hm(kDayStart + kStep));
   auto* row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
   row->pack_start(*Gtk::manage(new Gtk::Label("From")), Gtk::PACK_SHRINK);
   row->pack_start(*start, Gtk::PACK_SHRINK);
   row->pack_start(*Gtk::manage(new Gtk::Label("to")), Gtk::PACK_SHRINK);
   row->pack_start(*end, Gtk::PACK_SHRINK);
   box->pack_start(*row, Gtk::PACK_SHRINK);
+
+  auto* recur = Gtk::manage(new Gtk::ComboBoxText());
+  recur->append("none", "Does not repeat");
+  recur->append("daily", "Daily");
+  recur->append("weekly", "Weekly");
+  recur->append("monthly", "Monthly");
+  recur->append("yearly", "Yearly");
+  const char* rid = recur_attr(edited.recur);
+  recur->set_active_id(rid && *rid ? rid : "none");
+  auto* interval = Gtk::manage(new Gtk::SpinButton());
+  interval->set_range(1, 99);
+  interval->set_increments(1, 1);
+  interval->set_value(edited.recur_interval > 0 ? edited.recur_interval : 1);
+  auto* until_on = Gtk::manage(new Gtk::CheckButton("Until"));
+  auto* until = Gtk::manage(new Gtk::Entry());
+  until->set_placeholder_text("YYYY-MM-DD");
+  until->set_width_chars(12);
+  if (edited.has_until && edited.until.valid()) {
+    until_on->set_active(true);
+    until->set_text(date_iso(edited.until));
+  }
+  auto* rrow = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
+  rrow->pack_start(*Gtk::manage(new Gtk::Label("Repeat")), Gtk::PACK_SHRINK);
+  rrow->pack_start(*recur, Gtk::PACK_SHRINK);
+  rrow->pack_start(*Gtk::manage(new Gtk::Label("every")), Gtk::PACK_SHRINK);
+  rrow->pack_start(*interval, Gtk::PACK_SHRINK);
+  box->pack_start(*rrow, Gtk::PACK_SHRINK);
+  auto* urow = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
+  urow->pack_start(*until_on, Gtk::PACK_SHRINK);
+  urow->pack_start(*until, Gtk::PACK_SHRINK);
+  box->pack_start(*urow, Gtk::PACK_SHRINK);
   dlg.show_all();
   const int resp = dlg.run();
   dlg.hide();
@@ -325,6 +385,13 @@ void DaySpread::edit_slot(const Glib::Date& date, int start_min, int appt_id)
   edited.end_min = parse_hm(end->get_active_text());
   if (edited.end_min <= edited.start_min)
     edited.end_min = edited.start_min + kStep;
+  edited.recur = parse_recur(recur->get_active_id().raw());
+  edited.recur_interval = std::max(1, interval->get_value_as_int());
+  edited.has_until = until_on->get_active();
+  if (edited.has_until) {
+    if (!date_from_iso(until->get_text().raw(), edited.until))
+      edited.has_until = false;
+  }
   if (existing)
     binder_->update_appointment(edited);
   else
