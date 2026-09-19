@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/ephemeris (origin), https://github.c
 
 Reference window: `brand/ui-reference.svg`
 
-## Status (2026-09-12)
+## Status (2026-09-19)
 
-**M5 in tree.** Packaging: `debian/`, `scripts/release.sh`, `INSTALL.md`. Tag `v0.1.0`.
+**v0.1.2.** Packaging: `debian/`, `scripts/release.sh`, `INSTALL.md`. Tags `v0.1.0`, `v0.1.1`, `v0.1.2`.
 
 ## 1. Locked decisions
 
