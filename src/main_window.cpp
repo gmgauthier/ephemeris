@@ -6,6 +6,7 @@
 #include "fetch.hpp"
 #include "paths.hpp"
 #include "subscribe_dialog.hpp"
+#include "vcard.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -67,6 +68,19 @@ void collect_day_lines(const Binder& b, const RemoteCalendars& rem, const Glib::
     row += a.text;
     lines.push_back(row);
   }
+  const auto blocks = b.planner_on(d);
+  if (!blocks.empty()) {
+    const auto keys = b.planner_keys();
+    lines.emplace_back("Planner:");
+    for (const auto& p : blocks) {
+      Glib::ustring row = keys[static_cast<size_t>(p.category)];
+      if (!p.text.empty()) {
+        row += " — ";
+        row += p.text;
+      }
+      lines.push_back(row);
+    }
+  }
   const auto due = b.todos_due_on(d);
   if (!due.empty()) {
     lines.emplace_back("To Do due this day:");
@@ -104,10 +118,14 @@ MainWindow::MainWindow()
   spread_.set_remote(&remotes_);
   todo_.set_binder(&binder_);
   contacts_.set_binder(&binder_);
+  planner_.set_binder(&binder_);
+  notepad_.set_binder(&binder_);
   cal_done_.connect(sigc::mem_fun(*this, &MainWindow::on_cal_fetch_done));
   spread_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   todo_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   contacts_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
+  planner_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
+  notepad_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   spread_.signal_goto_todo().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::show_section), Section::todo));
 
@@ -115,6 +133,8 @@ MainWindow::MainWindow()
   pages_.add(spread_, "spread");
   pages_.add(todo_, "todo");
   pages_.add(contacts_, "contacts");
+  pages_.add(planner_, "planner");
+  pages_.add(notepad_, "notepad");
   pages_.set_visible_child("month");
   month_.set_hexpand(true);
   month_.set_vexpand(true);
@@ -124,6 +144,10 @@ MainWindow::MainWindow()
   todo_.set_vexpand(true);
   contacts_.set_hexpand(true);
   contacts_.set_vexpand(true);
+  planner_.set_hexpand(true);
+  planner_.set_vexpand(true);
+  notepad_.set_hexpand(true);
+  notepad_.set_vexpand(true);
 
   tabs_.signal_section().connect(sigc::mem_fun(*this, &MainWindow::show_section));
   month_.signal_day_chosen().connect(sigc::mem_fun(*this, &MainWindow::on_day));
@@ -225,6 +249,9 @@ void MainWindow::build_menu()
   add_item(*file, "Print _To Do…", sigc::mem_fun(*this, &MainWindow::on_print_todos));
   add_item(*file, "Print _Contacts…", sigc::mem_fun(*this, &MainWindow::on_print_contacts));
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
+  add_item(*file, "Import _vCard…", sigc::mem_fun(*this, &MainWindow::on_import_vcard));
+  add_item(*file, "Export vCar_d…", sigc::mem_fun(*this, &MainWindow::on_export_vcard));
+  file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*file, "E_xit", sigc::mem_fun(*this, &MainWindow::on_quit));
   add_menu("_File", *file);
 
@@ -237,6 +264,8 @@ void MainWindow::build_menu()
   cal_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "_Calendar", true));
   todo_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "_To Do", true));
   contacts_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "C_ontacts", true));
+  planner_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "_Planner", true));
+  notepad_item_ = Gtk::manage(new Gtk::RadioMenuItem(section_group_, "_Notepad", true));
   cal_item_->set_active(true);
   cal_item_->signal_activate().connect([this]() {
     if (!suppress_section_ && cal_item_->get_active())
@@ -250,9 +279,19 @@ void MainWindow::build_menu()
     if (!suppress_section_ && contacts_item_->get_active())
       show_section(Section::contacts);
   });
+  planner_item_->signal_activate().connect([this]() {
+    if (!suppress_section_ && planner_item_->get_active())
+      show_section(Section::planner);
+  });
+  notepad_item_->signal_activate().connect([this]() {
+    if (!suppress_section_ && notepad_item_->get_active())
+      show_section(Section::notepad);
+  });
   section->append(*cal_item_);
   section->append(*todo_item_);
   section->append(*contacts_item_);
+  section->append(*planner_item_);
+  section->append(*notepad_item_);
   section->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*section, "To_day", sigc::mem_fun(*this, &MainWindow::on_today), GDK_KEY_t,
            Gdk::CONTROL_MASK);
@@ -299,7 +338,38 @@ void MainWindow::refresh_marks()
   auto days = binder_.days_in_month(month_.month(), month_.year());
   const auto extra = remotes_.days_in_month(month_.month(), month_.year());
   days.insert(extra.begin(), extra.end());
-  month_.set_marks(std::move(days));
+  std::map<int, Glib::ustring> tips;
+  for (int d : days) {
+    Glib::Date date(static_cast<Glib::Date::Day>(d), month_.month(), month_.year());
+    Glib::ustring tip;
+    int n = 0;
+    auto add_line = [&](const Glib::ustring& line) {
+      if (n >= 8)
+        return;
+      if (!tip.empty())
+        tip += "\n";
+      tip += line;
+      ++n;
+    };
+    for (const auto& a : binder_.for_date(date)) {
+      Glib::ustring row = format_hm(a.start_min) + "  " + a.text;
+      add_line(row);
+    }
+    for (const auto& a : remotes_.for_date(date))
+      add_line(format_hm(a.start_min) + "  " + a.text);
+    const auto keys = binder_.planner_keys();
+    for (const auto& p : binder_.planner_on(date)) {
+      Glib::ustring row = keys[static_cast<size_t>(p.category)];
+      if (!p.text.empty())
+        row += " — " + p.text;
+      add_line(row);
+    }
+    for (const auto& t : binder_.todos_due_on(date))
+      add_line(Glib::ustring("To Do: ") + t.text);
+    if (!tip.empty())
+      tips[d] = std::move(tip);
+  }
+  month_.set_marks(std::move(days), std::move(tips));
 }
 
 void MainWindow::show_month()
@@ -342,6 +412,24 @@ void MainWindow::show_section(Section s)
     set_status("To Do");
     btn_prev_.set_sensitive(false);
     btn_next_.set_sensitive(false);
+  } else if (s == Section::planner) {
+    pages_.set_visible_child("planner");
+    tabs_.set_section(Section::planner);
+    if (planner_item_)
+      planner_item_->set_active(true);
+    planner_.refresh();
+    set_status(Glib::ustring::compose("Planner — %1", static_cast<int>(planner_.year())));
+    btn_prev_.set_sensitive(true);
+    btn_next_.set_sensitive(true);
+  } else if (s == Section::notepad) {
+    pages_.set_visible_child("notepad");
+    tabs_.set_section(Section::notepad);
+    if (notepad_item_)
+      notepad_item_->set_active(true);
+    notepad_.refresh();
+    set_status("Notepad");
+    btn_prev_.set_sensitive(false);
+    btn_next_.set_sensitive(false);
   } else {
     pages_.set_visible_child("contacts");
     tabs_.set_section(Section::contacts);
@@ -360,8 +448,12 @@ void MainWindow::on_today()
   Glib::Date now;
   now.set_time_current();
   month_.today();
+  planner_.today();
   refresh_marks();
-  show_spread(now);
+  if (pages_.get_visible_child_name() == "planner")
+    show_section(Section::planner);
+  else
+    show_spread(now);
 }
 
 void MainWindow::on_month_btn()
@@ -372,6 +464,11 @@ void MainWindow::on_month_btn()
 
 void MainWindow::on_prev()
 {
+  if (pages_.get_visible_child_name() == "planner") {
+    planner_.prev_year();
+    show_section(Section::planner);
+    return;
+  }
   if (cal_view_ == CalView::spread && pages_.get_visible_child_name() == "spread") {
     spread_.prev_spread();
     show_section(Section::calendar);
@@ -384,6 +481,11 @@ void MainWindow::on_prev()
 
 void MainWindow::on_next()
 {
+  if (pages_.get_visible_child_name() == "planner") {
+    planner_.next_year();
+    show_section(Section::planner);
+    return;
+  }
   if (cal_view_ == CalView::spread && pages_.get_visible_child_name() == "spread") {
     spread_.next_spread();
     show_section(Section::calendar);
@@ -405,6 +507,7 @@ void MainWindow::on_binder_changed()
   refresh_marks();
   todo_.refresh();
   contacts_.refresh();
+  planner_.refresh();
   tabs_.set_open_count(binder_.open_todo_count());
   if (cal_view_ == CalView::spread)
     spread_.refresh();
@@ -503,6 +606,8 @@ void MainWindow::on_new()
   spread_.set_binder(&binder_);
   todo_.set_binder(&binder_);
   contacts_.set_binder(&binder_);
+  planner_.set_binder(&binder_);
+  notepad_.set_binder(&binder_);
   month_.today();
   refresh_marks();
   tabs_.set_open_count(binder_.open_todo_count());
@@ -533,6 +638,8 @@ void MainWindow::on_open()
   spread_.set_binder(&binder_);
   todo_.set_binder(&binder_);
   contacts_.set_binder(&binder_);
+  planner_.set_binder(&binder_);
+  notepad_.set_binder(&binder_);
   month_.today();
   refresh_marks();
   tabs_.set_open_count(binder_.open_todo_count());
@@ -590,6 +697,10 @@ void MainWindow::persist()
       settings_.last_section = "todo";
     else if (name == "contacts")
       settings_.last_section = "contacts";
+    else if (name == "planner")
+      settings_.last_section = "planner";
+    else if (name == "notepad")
+      settings_.last_section = "notepad";
     else
       settings_.last_section = "calendar";
   }
@@ -611,6 +722,8 @@ void MainWindow::restore_session()
   spread_.set_binder(&binder_);
   todo_.set_binder(&binder_);
   contacts_.set_binder(&binder_);
+  planner_.set_binder(&binder_);
+  notepad_.set_binder(&binder_);
   Glib::Date d;
   if (!settings_.last_date.empty() && date_from_iso(settings_.last_date, d)) {
     month_.set_month(d.get_month(), d.get_year());
@@ -629,6 +742,10 @@ void MainWindow::restore_session()
     show_section(Section::todo);
   else if (settings_.last_section == "contacts")
     show_section(Section::contacts);
+  else if (settings_.last_section == "planner")
+    show_section(Section::planner);
+  else if (settings_.last_section == "notepad")
+    show_section(Section::notepad);
   else
     show_section(Section::calendar);
 }
@@ -758,6 +875,66 @@ void MainWindow::on_cal_fetch_done()
     set_status("Some calendars failed: " + err);
   else
     set_status("Calendar fetch failed: " + (err.empty() ? Glib::ustring("unknown error") : err));
+}
+
+void MainWindow::on_import_vcard()
+{
+  Gtk::FileChooserDialog dlg(*this, "Import vCard", Gtk::FILE_CHOOSER_ACTION_OPEN);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Open", Gtk::RESPONSE_ACCEPT);
+  auto filter = Gtk::FileFilter::create();
+  filter->set_name("vCard");
+  filter->add_pattern("*.vcf");
+  filter->add_pattern("*.vcard");
+  dlg.add_filter(filter);
+  if (dlg.run() != Gtk::RESPONSE_ACCEPT)
+    return;
+  const std::string path = dlg.get_filename();
+  dlg.hide();
+  std::string text;
+  try {
+    text = Glib::file_get_contents(path);
+  } catch (const Glib::Error& e) {
+    show_error(e.what());
+    return;
+  }
+  const auto cards = parse_vcf(text);
+  if (cards.empty()) {
+    set_status("No contacts in that vCard.");
+    return;
+  }
+  for (const auto& c : cards)
+    binder_.add_contact(c);
+  on_binder_changed();
+  show_section(Section::contacts);
+  set_status(Glib::ustring::compose("Imported %1 contact(s).", cards.size()));
+}
+
+void MainWindow::on_export_vcard()
+{
+  const auto people = binder_.contacts();
+  if (people.empty()) {
+    set_status("No contacts to export.");
+    return;
+  }
+  Gtk::FileChooserDialog dlg(*this, "Export vCard", Gtk::FILE_CHOOSER_ACTION_SAVE);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Save", Gtk::RESPONSE_ACCEPT);
+  dlg.set_current_name("contacts.vcf");
+  dlg.set_do_overwrite_confirmation(true);
+  if (dlg.run() != Gtk::RESPONSE_ACCEPT)
+    return;
+  std::string path = dlg.get_filename();
+  dlg.hide();
+  if (path.size() < 4 || path.substr(path.size() - 4) != ".vcf")
+    path += ".vcf";
+  try {
+    Glib::file_set_contents(path, contacts_to_vcf(people));
+  } catch (const Glib::Error& e) {
+    show_error(e.what());
+    return;
+  }
+  set_status(Glib::ustring::compose("Exported %1 contact(s).", people.size()));
 }
 
 void MainWindow::on_not_yet(const Glib::ustring& feature)

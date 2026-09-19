@@ -22,9 +22,9 @@ Reference window: `brand/ui-reference.svg`
 | Toolkit | C++17, gtkmm-3.0, GTK3 CSS, Meson |
 | Metaphor | One ring-bound book. Section tabs on the right |
 | v1 sections | **Calendar** + **To Do** + **Contacts** |
-| Contacts | First, Last, Phone, Email (a field, not a mailbox), Timezone, Notes (1000 plain text). Sort by last name. A–Z jump. Evergreen tab. `@` name completion in appointment and To Do add. No vCard |
+| Contacts | First, Last, Phone, Email (a field, not a mailbox), Timezone, Notes (1000 plain text). Sort by last name. A–Z jump. Evergreen tab. `@` name completion in appointment and To Do add. vCard import/export (N/TEL/EMAIL/NOTE). |
 | Network | Optional HTTPS iCalendar (.ics) URL subscribe, read-only overlay. No CalDAV, no account, no mail. |
-| Parked | Notepad, Planner, Anniversary, Calls, recurrence, alarms, vCard import |
+| Parked | Anniversary, Calls, alarms. Recurrence, Planner, Notepad, and vCard import/export are in this tree. |
 | v1 format | UTF-8 XML, extension `.ephemeris`. libxml2. Not `.ics` native, not Lotus `.ORG` |
 | Calendar | Monday-first month. Two-day spread (M1). 08:00–18:00, 30-minute slots |
 | Brand | LCOS beige / navy. No Bryan’s seal |
@@ -45,7 +45,7 @@ Reference window: `brand/ui-reference.svg`
 
 - Evolution / CalDAV / native `.ics` as the binder identity (HTTPS ICS subscribe is overlay only)
 - Mail, IMAP, SMTP, or any online account
-- vCard import, YOLO-dex index cards, day-page contact show-through
+- YOLO-dex index cards, day-page contact show-through
 - Photoreal leather
 - Custom title bar. `GTK_THEME` in the environment still wins; else Clearlooks-Phenix, then Clearlooks, then Adwaita:light (process only)
 

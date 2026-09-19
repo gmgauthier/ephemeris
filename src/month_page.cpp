@@ -81,13 +81,15 @@ void MonthPage::next_month()
   set_month(d.get_month(), d.get_year());
 }
 
-void MonthPage::set_marks(std::set<int> days)
+void MonthPage::set_marks(std::set<int> days, std::map<int, Glib::ustring> tips)
 {
   marks_ = std::move(days);
+  tips_ = std::move(tips);
   rebuild();
 }
 
-Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today, bool busy)
+Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today, bool busy,
+                                 const Glib::ustring& tip)
 {
   auto* ev = Gtk::manage(new Gtk::EventBox());
   ev->set_visible_window(true);
@@ -106,6 +108,8 @@ Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today, bool bus
     ev->get_style_context()->add_class("ephemeris-day-busy");
     lab->get_style_context()->add_class("ephemeris-day-busy");
   }
+  if (in_month && day > 0 && busy && !tip.empty())
+    ev->set_tooltip_text(tip);
   if (in_month && day > 0) {
     const int d = day;
     ev->add_events(Gdk::BUTTON_PRESS_MASK);
@@ -149,7 +153,13 @@ void MonthPage::rebuild()
       const int d = cursor.get_day();
       const bool is_today = this_month && in_month && d == today_d;
       const bool busy = in_month && marks_.count(d) > 0;
-      auto* w = make_day(d, in_month, is_today, busy);
+      Glib::ustring tip;
+      if (busy) {
+        auto it = tips_.find(d);
+        if (it != tips_.end())
+          tip = it->second;
+      }
+      auto* w = make_day(d, in_month, is_today, busy, tip);
       grid_.attach(*w, col, row + 1, 1, 1);
       cursor.add_days(1);
     }

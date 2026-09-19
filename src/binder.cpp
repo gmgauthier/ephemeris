@@ -10,6 +10,7 @@
 #include <glibmm/miscutils.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <sstream>
 
@@ -110,7 +111,66 @@ bool date_eq(const Glib::Date& a, const Glib::Date& b)
   return a.get_julian() == b.get_julian();
 }
 
+void default_planner_keys(std::array<Glib::ustring, kPlannerKeyCount>& keys)
+{
+  keys[0] = "Holiday";
+  keys[1] = "Visit";
+  keys[2] = "Travel";
+  keys[3] = "Streaming";
+  keys[4] = "Other";
+}
+
 }  // namespace
+
+const char* recur_attr(Recur r)
+{
+  switch (r) {
+    case Recur::daily:
+      return "daily";
+    case Recur::weekly:
+      return "weekly";
+    case Recur::monthly:
+      return "monthly";
+    case Recur::yearly:
+      return "yearly";
+    case Recur::none:
+    default:
+      return "";
+  }
+}
+
+Recur parse_recur(const std::string& s)
+{
+  if (s == "daily")
+    return Recur::daily;
+  if (s == "weekly")
+    return Recur::weekly;
+  if (s == "monthly")
+    return Recur::monthly;
+  if (s == "yearly")
+    return Recur::yearly;
+  return Recur::none;
+}
+
+const char* planner_color(int category)
+{
+  static const char* colors[] = {"#C45C4A", "#1660C4", "#1B4D3E", "#B8860B", "#5C4A6B"};
+  if (category < 0 || category >= kPlannerKeyCount)
+    return colors[4];
+  return colors[category];
+}
+
+std::string now_stamp()
+{
+  GDateTime* dt = g_date_time_new_now_local();
+  if (!dt)
+    return {};
+  gchar* s = g_date_time_format(dt, "%Y-%m-%d %H:%M");
+  g_date_time_unref(dt);
+  std::string out = s ? s : "";
+  g_free(s);
+  return out;
+}
 
 Glib::ustring format_hm(int mins)
 {
@@ -202,11 +262,16 @@ void Binder::close()
   appts_.clear();
   todos_.clear();
   contacts_.clear();
+  planner_.clear();
+  default_planner_keys(planner_keys_);
+  notes_.clear();
+  next_note_id_ = 1;
   path_.clear();
   error_.clear();
   next_id_ = 1;
   next_todo_id_ = 1;
   next_contact_id_ = 1;
+  next_planner_id_ = 1;
   open_ = false;
   dirty_ = false;
 }
@@ -215,6 +280,48 @@ void Binder::create_new()
 {
   close();
   open_ = true;
+}
+
+bool Binder::occurs_on(const Appointment& a, const Glib::Date& date) const
+{
+  if (!a.date.valid() || !date.valid())
+    return false;
+  if (date.compare(a.date) < 0)
+    return false;
+  if (a.has_until && a.until.valid() && date.compare(a.until) > 0)
+    return false;
+  const int interval = a.recur_interval > 0 ? a.recur_interval : 1;
+  if (a.recur == Recur::none)
+    return date_eq(a.date, date);
+  const long delta = static_cast<long>(date.get_julian()) - static_cast<long>(a.date.get_julian());
+  if (a.recur == Recur::daily)
+    return delta % interval == 0;
+  if (a.recur == Recur::weekly) {
+    if (date.get_weekday() != a.date.get_weekday())
+      return false;
+    return (delta / 7) % interval == 0;
+  }
+  if (a.recur == Recur::monthly) {
+    const int months =
+        (static_cast<int>(date.get_year()) - static_cast<int>(a.date.get_year())) * 12 +
+        (static_cast<int>(date.get_month()) - static_cast<int>(a.date.get_month()));
+    if (months < 0 || months % interval != 0)
+      return false;
+    const int dim = Glib::Date::get_days_in_month(date.get_month(), date.get_year());
+    const int want = a.date.get_day();
+    return date.get_day() == (want > dim ? dim : want);
+  }
+  if (a.recur == Recur::yearly) {
+    const int years = static_cast<int>(date.get_year()) - static_cast<int>(a.date.get_year());
+    if (years < 0 || years % interval != 0)
+      return false;
+    if (date.get_month() != a.date.get_month())
+      return false;
+    const int dim = Glib::Date::get_days_in_month(date.get_month(), date.get_year());
+    const int want = a.date.get_day();
+    return date.get_day() == (want > dim ? dim : want);
+  }
+  return false;
 }
 
 const Appointment* Binder::find(int id) const
@@ -230,8 +337,11 @@ std::vector<Appointment> Binder::for_date(const Glib::Date& date) const
 {
   std::vector<Appointment> out;
   for (const auto& a : appts_) {
-    if (date_eq(a.date, date))
-      out.push_back(a);
+    if (!occurs_on(a, date))
+      continue;
+    Appointment copy = a;
+    copy.date = date;
+    out.push_back(std::move(copy));
   }
   std::sort(out.begin(), out.end(),
             [](const Appointment& x, const Appointment& y) { return x.start_min < y.start_min; });
@@ -241,7 +351,7 @@ std::vector<Appointment> Binder::for_date(const Glib::Date& date) const
 bool Binder::has_on(const Glib::Date& date) const
 {
   for (const auto& a : appts_) {
-    if (date_eq(a.date, date))
+    if (occurs_on(a, date))
       return true;
   }
   return false;
@@ -250,13 +360,20 @@ bool Binder::has_on(const Glib::Date& date) const
 std::set<int> Binder::days_in_month(Glib::Date::Month month, Glib::Date::Year year) const
 {
   std::set<int> days;
-  for (const auto& a : appts_) {
-    if (a.date.get_month() == month && a.date.get_year() == year)
-      days.insert(a.date.get_day());
-  }
-  for (const auto& t : todos_) {
-    if (t.has_due && t.due.get_month() == month && t.due.get_year() == year)
-      days.insert(t.due.get_day());
+  const int dim = Glib::Date::get_days_in_month(month, year);
+  for (int d = 1; d <= dim; ++d) {
+    Glib::Date date(static_cast<Glib::Date::Day>(d), month, year);
+    if (has_on(date))
+      days.insert(d);
+    for (const auto& t : todos_) {
+      if (t.has_due && date_eq(t.due, date))
+        days.insert(d);
+    }
+    for (const auto& p : planner_) {
+      if (p.start.valid() && p.end.valid() && date.compare(p.start) >= 0 &&
+          date.compare(p.end) <= 0)
+        days.insert(d);
+    }
   }
   return days;
 }
@@ -439,6 +556,136 @@ bool Binder::update_contact(const Contact& c)
   return false;
 }
 
+std::vector<PlannerEvent> Binder::planner_events() const
+{
+  return planner_;
+}
+
+std::vector<PlannerEvent> Binder::planner_on(const Glib::Date& date) const
+{
+  std::vector<PlannerEvent> out;
+  for (const auto& p : planner_) {
+    if (p.start.valid() && p.end.valid() && date.compare(p.start) >= 0 && date.compare(p.end) <= 0)
+      out.push_back(p);
+  }
+  return out;
+}
+
+int Binder::add_planner(const PlannerEvent& e)
+{
+  if (!open_)
+    create_new();
+  PlannerEvent n = e;
+  n.id = next_planner_id_++;
+  if (n.end.valid() && n.start.valid() && n.end.compare(n.start) < 0)
+    std::swap(n.start, n.end);
+  if (n.category < 0 || n.category >= kPlannerKeyCount)
+    n.category = 0;
+  planner_.push_back(n);
+  dirty_ = true;
+  return n.id;
+}
+
+bool Binder::update_planner(const PlannerEvent& e)
+{
+  for (auto& x : planner_) {
+    if (x.id == e.id) {
+      x = e;
+      if (x.end.valid() && x.start.valid() && x.end.compare(x.start) < 0)
+        std::swap(x.start, x.end);
+      dirty_ = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Binder::remove_planner(int id)
+{
+  auto it = std::remove_if(planner_.begin(), planner_.end(),
+                           [id](const PlannerEvent& e) { return e.id == id; });
+  if (it == planner_.end())
+    return false;
+  planner_.erase(it, planner_.end());
+  dirty_ = true;
+  return true;
+}
+
+const PlannerEvent* Binder::find_planner(int id) const
+{
+  for (const auto& p : planner_) {
+    if (p.id == id)
+      return &p;
+  }
+  return nullptr;
+}
+
+std::array<Glib::ustring, kPlannerKeyCount> Binder::planner_keys() const
+{
+  return planner_keys_;
+}
+
+std::vector<Note> Binder::notes() const
+{
+  return notes_;
+}
+
+int Binder::add_note(const Note& n)
+{
+  if (!open_)
+    create_new();
+  Note x = n;
+  x.id = next_note_id_++;
+  if (x.stamped.empty())
+    x.stamped = now_stamp();
+  notes_.push_back(x);
+  dirty_ = true;
+  return x.id;
+}
+
+bool Binder::update_note(const Note& n)
+{
+  for (auto& x : notes_) {
+    if (x.id == n.id) {
+      x = n;
+      dirty_ = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Binder::remove_note(int id)
+{
+  auto it =
+      std::remove_if(notes_.begin(), notes_.end(), [id](const Note& n) { return n.id == id; });
+  if (it == notes_.end())
+    return false;
+  notes_.erase(it, notes_.end());
+  dirty_ = true;
+  return true;
+}
+
+const Note* Binder::find_note(int id) const
+{
+  for (const auto& n : notes_) {
+    if (n.id == id)
+      return &n;
+  }
+  return nullptr;
+}
+
+void Binder::set_planner_key(int index, const Glib::ustring& name)
+{
+  if (index < 0 || index >= kPlannerKeyCount)
+    return;
+  Glib::ustring n = name;
+  if (n.empty())
+    return;
+  planner_keys_[static_cast<size_t>(index)] = std::move(n);
+  dirty_ = true;
+}
+
 bool Binder::remove_contact(int id)
 {
   auto it = std::remove_if(contacts_.begin(), contacts_.end(),
@@ -457,8 +704,26 @@ bool Binder::write_file(const std::string& path) const
   os << "<ephemeris version=\"1\">\n";
   for (const auto& a : appts_) {
     os << "  <appointment id=\"" << a.id << "\" date=\"" << date_iso(a.date) << "\" start=\""
-       << format_hm(a.start_min) << "\" end=\"" << format_hm(a.end_min) << "\">"
-       << xml_escape(a.text) << "</appointment>\n";
+       << format_hm(a.start_min) << "\" end=\"" << format_hm(a.end_min) << "\"";
+    if (a.recur != Recur::none) {
+      os << " recur=\"" << recur_attr(a.recur) << "\" interval=\"" << a.recur_interval << "\"";
+      if (a.has_until && a.until.valid())
+        os << " until=\"" << date_iso(a.until) << "\"";
+    }
+    os << ">" << xml_escape(a.text) << "</appointment>\n";
+  }
+  for (int i = 0; i < kPlannerKeyCount; ++i) {
+    os << "  <planner-key index=\"" << i << "\">"
+       << xml_escape(planner_keys_[static_cast<size_t>(i)]) << "</planner-key>\n";
+  }
+  for (const auto& p : planner_) {
+    os << "  <planner id=\"" << p.id << "\" start=\"" << date_iso(p.start) << "\" end=\""
+       << date_iso(p.end) << "\" category=\"" << p.category << "\">" << xml_escape(p.text)
+       << "</planner>\n";
+  }
+  for (const auto& n : notes_) {
+    os << "  <note id=\"" << n.id << "\" title=\"" << xml_escape_attr(n.title) << "\" stamped=\""
+       << xml_escape_attr(n.stamped) << "\">" << xml_escape(n.body) << "</note>\n";
   }
   for (const auto& t : todos_) {
     os << "  <todo id=\"" << t.id << "\" done=\"" << (t.done ? "true" : "false") << "\" priority=\""
@@ -532,9 +797,15 @@ bool Binder::open(const std::string& path)
   std::vector<Appointment> loaded;
   std::vector<Todo> loaded_todos;
   std::vector<Contact> loaded_contacts;
+  std::vector<PlannerEvent> loaded_planner;
+  std::vector<Note> loaded_notes;
+  int max_note = 0;
+  std::array<Glib::ustring, kPlannerKeyCount> loaded_keys;
+  default_planner_keys(loaded_keys);
   int max_id = 0;
   int max_todo = 0;
   int max_contact = 0;
+  int max_planner = 0;
   for (xmlNode* n = root->children; n; n = n->next) {
     if (n->type != XML_ELEMENT_NODE)
       continue;
@@ -547,6 +818,12 @@ bool Binder::open(const std::string& path)
       a.start_min = parse_hm(node_prop(n, "start"));
       const std::string end = node_prop(n, "end");
       a.end_min = end.empty() ? a.start_min + 30 : parse_hm(end);
+      a.recur = parse_recur(node_prop(n, "recur"));
+      const std::string iv = node_prop(n, "interval");
+      if (!iv.empty())
+        a.recur_interval = std::max(1, static_cast<int>(g_ascii_strtoll(iv.c_str(), nullptr, 10)));
+      const std::string until = node_prop(n, "until");
+      a.has_until = !until.empty() && date_from_iso(until, a.until);
       a.text = node_text(n);
       if (a.id > max_id)
         max_id = a.id;
@@ -579,6 +856,40 @@ bool Binder::open(const std::string& path)
       if (c.id > max_contact)
         max_contact = c.id;
       loaded_contacts.push_back(std::move(c));
+    } else if (node_name(n) == "planner-key") {
+      const int idx = static_cast<int>(g_ascii_strtoll(node_prop(n, "index").c_str(), nullptr, 10));
+      if (idx >= 0 && idx < kPlannerKeyCount) {
+        Glib::ustring name = node_text(n);
+        if (!name.empty())
+          loaded_keys[static_cast<size_t>(idx)] = std::move(name);
+      }
+    } else if (node_name(n) == "planner") {
+      PlannerEvent p;
+      const std::string id_s = node_prop(n, "id");
+      if (!id_s.empty())
+        p.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
+      date_from_iso(node_prop(n, "start"), p.start);
+      date_from_iso(node_prop(n, "end"), p.end);
+      p.category = static_cast<int>(g_ascii_strtoll(node_prop(n, "category").c_str(), nullptr, 10));
+      if (p.category < 0 || p.category >= kPlannerKeyCount)
+        p.category = 0;
+      p.text = node_text(n);
+      if (p.end.valid() && p.start.valid() && p.end.compare(p.start) < 0)
+        std::swap(p.start, p.end);
+      if (p.id > max_planner)
+        max_planner = p.id;
+      loaded_planner.push_back(std::move(p));
+    } else if (node_name(n) == "note") {
+      Note note;
+      const std::string id_s = node_prop(n, "id");
+      if (!id_s.empty())
+        note.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
+      note.title = node_prop(n, "title");
+      note.stamped = node_prop(n, "stamped");
+      note.body = node_text(n);
+      if (note.id > max_note)
+        max_note = note.id;
+      loaded_notes.push_back(std::move(note));
     }
   }
   xmlFreeDoc(doc);
@@ -595,9 +906,20 @@ bool Binder::open(const std::string& path)
     if (c.id < 1)
       c.id = ++max_contact;
   }
+  for (auto& p : loaded_planner) {
+    if (p.id < 1)
+      p.id = ++max_planner;
+  }
   appts_ = std::move(loaded);
   todos_ = std::move(loaded_todos);
   contacts_ = std::move(loaded_contacts);
+  for (auto& n : loaded_notes) {
+    if (n.id < 1)
+      n.id = ++max_note;
+  }
+  planner_ = std::move(loaded_planner);
+  planner_keys_ = std::move(loaded_keys);
+  notes_ = std::move(loaded_notes);
   path_ = path;
   next_id_ = max_id + 1;
   if (next_id_ < 1)
@@ -608,6 +930,12 @@ bool Binder::open(const std::string& path)
   next_contact_id_ = max_contact + 1;
   if (next_contact_id_ < 1)
     next_contact_id_ = 1;
+  next_planner_id_ = max_planner + 1;
+  if (next_planner_id_ < 1)
+    next_planner_id_ = 1;
+  next_note_id_ = max_note + 1;
+  if (next_note_id_ < 1)
+    next_note_id_ = 1;
   open_ = true;
   dirty_ = false;
   return true;
