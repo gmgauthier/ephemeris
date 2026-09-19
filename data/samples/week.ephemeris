@@ -7,6 +7,21 @@
   <appointment id="5" date="2026-09-13" start="16:00" end="18:00">Prep for Aristotle Podcast</appointment>
   <appointment id="6" date="2026-09-20" start="09:30" end="10:00">Something to happen</appointment>
   <appointment id="7" date="2026-09-24" start="10:00" end="10:30">Lunch with Bryan Lunduke</appointment>
+  <planner-key index="0">Holiday</planner-key>
+  <planner-key index="1">Meeting</planner-key>
+  <planner-key index="2">Training</planner-key>
+  <planner-key index="3">Travel</planner-key>
+  <planner-key index="4">Other</planner-key>
+  <planner id="2" start="2026-10-11" end="2026-10-11" category="4">Other</planner>
+  <planner id="3" start="2026-10-12" end="2026-10-12" category="4">Other</planner>
+  <planner id="4" start="2026-12-24" end="2026-12-24" category="0">Holiday</planner>
+  <planner id="5" start="2026-12-25" end="2026-12-25" category="0">Holiday</planner>
+  <planner id="6" start="2026-12-31" end="2026-12-31" category="0">Holiday</planner>
+  <planner id="7" start="2026-12-30" end="2026-12-30" category="0">Holiday</planner>
+  <planner id="8" start="2026-10-13" end="2026-10-13" category="4">Other</planner>
+  <note id="8" title="Some Things" stamped="2026-09-19 20:09">This is a cool new note. Hello note.</note>
+  <note id="9" title="This is a second note" stamped="2026-09-19 20:10">Hello second note. How are you?
+</note>
   <todo id="1" done="false" priority="2" due="2026-09-14">buy stamps</todo>
   <todo id="2" done="false" priority="1" due="2026-09-15">call the dentist</todo>
   <todo id="3" done="true" priority="0" due="2026-09-14">open sample binder</todo>
@@ -17,4 +32,7 @@
   <todo id="8" done="false" priority="3" due="2026-09-18">Talk to Bryan Lunduke</todo>
   <contact id="1" first="Greg" last="Gauthier" phone="+44 07910094267" email="gmgauthier@protonmail.com" timezone="Europe/London">My own address.</contact>
   <contact id="2" first="Bryan" last="Lunduke" phone="0" email="bryan@lunduke.com" timezone="America/Chicago">The Lunduke Journal</contact>
+  <contact id="3" first="Charlotte" last="Gauthier" phone="" email="charlotte@charlottegauthier.com" timezone="Europe/London">Miss Chikin</contact>
+  <contact id="4" first="Greg" last="AtWork" phone="" email="gregory.gauthier@perspectum.com" timezone="Europe/London"></contact>
+  <contact id="5" first="Greg" last="Secondary" phone="" email="greg@gmgauthier.com" timezone="Europe/London"></contact>
 </ephemeris>

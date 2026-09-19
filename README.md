@@ -14,7 +14,11 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ![To Do](brand/LCOS_ephemeris_todo.png)
 
+![Planner](brand/LCOS_ephemeris_planner.png)
+
 ![Contacts](brand/LCOS_ephemeris_contacts.png)
+
+![Notepad](brand/LCOS_ephemeris_notebook.png)
 
 ![About](brand/LCOS_ephemeris_about.png)
 
