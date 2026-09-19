@@ -20,7 +20,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v0.3.0.** Planner, recurrence, Notepad, vCard, and HTTPS iCalendar subscribe. See [INSTALL.md](INSTALL.md).
+**v1.0.0.** Planner, recurrence, Notepad, vCard, and HTTPS iCalendar subscribe. See [INSTALL.md](INSTALL.md).
 
 | Doc | What |
 |---|---|

@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-09-19)
 
-**v0.3.0.** Planner, recurrence, Notepad, vCard. Tags through `v0.3.0`.
+**v1.0.0.** Planner, recurrence, Notepad, vCard. Tags through `v1.0.0`.
 
 ## 1. Locked decisions
 

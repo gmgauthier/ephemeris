@@ -1,12 +1,12 @@
 # Ephemeris backlog
 
-Current release: **v0.3.0**. Last updated: 2026-09-19.
+Current release: **v1.0.0**. Last updated: 2026-09-19.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
 ## High Priority
 
-None. v0.3.0 is the current ship.
+None. v1.0.0 is the current ship.
 
 ## Low Priority
 
@@ -27,7 +27,7 @@ None. v0.3.0 is the current ship.
 
 ## Shipped
 
-**v0.3.0** — Planner year wall-chart (Holiday / Visit / Travel / Streaming / Other); local appointment recurrence; Notepad with timestamps; vCard import/export; month-day tooltips.
+**v1.0.0** — Planner year wall-chart (Holiday / Visit / Travel / Streaming / Other); local appointment recurrence; Notepad with timestamps; vCard import/export; month-day tooltips.
 
 **v0.2.0** — HTTPS iCalendar URL subscribe as a read-only overlay on Calendar. Share-link keys in `~/.config/ephemeris/ephemeris.ini` (0600). Cache under `~/.local/share/ephemeris/calendars/`. No CalDAV.
 

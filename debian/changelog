@@ -1,4 +1,4 @@
-ephemeris (0.3.0-1) unstable; urgency=medium
+ephemeris (1.0.0-1) unstable; urgency=medium
 
   * Planner section, local appointment recurrence, Notepad pages with
     timestamps, and vCard import/export.
