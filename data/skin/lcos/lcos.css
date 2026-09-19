@@ -81,6 +81,15 @@ window.ephemeris-window {
   background-color: #D4E4F7;
 }
 
+.ephemeris-slot-remote {
+  background-color: #F3EDE0;
+  font-style: italic;
+}
+
+.ephemeris-slot-remote:hover {
+  background-color: #E8E4D8;
+}
+
 .ephemeris-showthrough {
   border-top: 1px solid #C4C0B4;
   padding-top: 8px;

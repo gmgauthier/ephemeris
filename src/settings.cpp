@@ -7,6 +7,9 @@
 #include <glibmm/keyfile.h>
 #include <glibmm/miscutils.h>
 
+#include <sys/stat.h>
+#include <vector>
+
 namespace ephemeris {
 namespace {
 
@@ -62,6 +65,28 @@ void Settings::load()
   if (!cal.empty())
     last_cal = cal;
   last_date = get_str(kf, "session", "date");
+  calendars.clear();
+  try {
+    if (kf.has_group("calendars") && kf.has_key("calendars", "urls")) {
+      std::vector<Glib::ustring> urls, titles;
+      for (const Glib::ustring& u : kf.get_string_list("calendars", "urls"))
+        urls.push_back(u);
+      if (kf.has_key("calendars", "titles")) {
+        for (const Glib::ustring& t : kf.get_string_list("calendars", "titles"))
+          titles.push_back(t);
+      }
+      calendars.reserve(urls.size());
+      for (size_t i = 0; i < urls.size(); ++i) {
+        CalSub s;
+        s.url = urls[i].raw();
+        if (i < titles.size())
+          s.title = titles[i].raw();
+        if (!s.url.empty())
+          calendars.push_back(std::move(s));
+      }
+    }
+  } catch (const Glib::Error&) {
+  }
 }
 
 void Settings::save() const
@@ -76,8 +101,18 @@ void Settings::save() const
   kf.set_string("session", "section", last_section);
   kf.set_string("session", "cal", last_cal);
   kf.set_string("session", "date", last_date);
+  std::vector<Glib::ustring> urls, titles;
+  urls.reserve(calendars.size());
+  titles.reserve(calendars.size());
+  for (const auto& s : calendars) {
+    urls.emplace_back(s.url);
+    titles.emplace_back(s.title);
+  }
+  kf.set_string_list("calendars", "urls", urls);
+  kf.set_string_list("calendars", "titles", titles);
   try {
     kf.save_to_file(config_path());
+    ::chmod(config_path().c_str(), 0600);
   } catch (const Glib::Error&) {
   }
 }

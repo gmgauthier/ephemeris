@@ -29,7 +29,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 ## Build
 
 ```
-sudo apt install build-essential meson ninja-build pkg-config g++ libgtkmm-3.0-dev libxml2-dev clang-format cppcheck
+sudo apt install build-essential meson ninja-build pkg-config g++ libgtkmm-3.0-dev libxml2-dev libsoup-3.0-dev clang-format cppcheck
 meson setup build
 meson compile -C build
 ./build/ephemeris

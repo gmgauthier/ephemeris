@@ -13,6 +13,7 @@ project(
 
 gtkmm = dependency('gtkmm-3.0')
 libxml = dependency('libxml-2.0')
+libsoup = dependency('libsoup-3.0')
 
 conf = configuration_data()
 conf.set_quoted('VERSION', meson.project_version())
@@ -43,8 +44,12 @@ executable(
   'src/binder.cpp',
   'src/day_spread.cpp',
   'src/settings.cpp',
+  'src/ics.cpp',
+  'src/fetch.cpp',
+  'src/remote_cal.cpp',
+  'src/subscribe_dialog.cpp',
   include_directories: inc,
-  dependencies: [gtkmm, libxml],
+  dependencies: [gtkmm, libxml, libsoup],
   install: true,
   install_dir: get_option('bindir'),
 )

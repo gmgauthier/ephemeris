@@ -9,7 +9,8 @@ Build-Depends:
  pkg-config,
  g++,
  libgtkmm-3.0-dev,
- libxml2-dev
+ libxml2-dev,
+ libsoup-3.0-dev
 Standards-Version: 4.7.0
 Homepage: https://github.com/gmgauthier/ephemeris
 Vcs-Git: https://github.com/gmgauthier/ephemeris.git
@@ -20,8 +21,9 @@ Package: ephemeris
 Architecture: any
 Depends:
  ${misc:Depends},
- ${shlibs:Depends}
+ ${shlibs:Depends},
+ glib-networking
 Description: paper appointment book for The Lunduke Computer Operating System
  Ephemeris is a single-window gtkmm-3 Lotus Organizer-shaped binder:
- Calendar, To Do, and Contacts in one local .ephemeris XML file. No
- network, no CalDAV.
+ Calendar, To Do, and Contacts in one local .ephemeris XML file.
+ Optional HTTPS iCalendar subscribe. No CalDAV.

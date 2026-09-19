@@ -6,7 +6,7 @@ Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite 
 
 ## High Priority
 
-Nothing queued. v1 (M0–M5, including Contacts) is tagged. Parked sections live under Low Priority. Do **not** start a second Organizer.
+- **Remote calendars.** HTTPS iCalendar URL subscribe as a read-only overlay on Calendar. Share-link query keys stay in `~/.config/ephemeris/ephemeris.ini` (0600). Do not write them into the `.ephemeris` binder. No CalDAV.
 
 ## Low Priority
 

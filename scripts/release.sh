@@ -60,6 +60,18 @@ do_appimage() {
   meson setup "${ROOT}/build-appimage" "$ROOT" --prefix=/usr
   meson compile -C "${ROOT}/build-appimage"
   DESTDIR="$APPDIR" meson install -C "${ROOT}/build-appimage"
+
+  GIOMOD=$(pkg-config --variable=giomoduledir gio-2.0 2>/dev/null || true)
+  GIOMOD="${GIOMOD:-/usr/lib/x86_64-linux-gnu/gio/modules}"
+  if [ -f "${GIOMOD}/libgiognutls.so" ]; then
+    mkdir -p "${APPDIR}/usr/lib/x86_64-linux-gnu/gio/modules"
+    cp -a "${GIOMOD}/libgiognutls.so" "${APPDIR}/usr/lib/x86_64-linux-gnu/gio/modules/"
+    mkdir -p "${APPDIR}/apprun-hooks"
+    printf '%s\n' \
+      'export GIO_MODULE_DIR="${APPDIR}/usr/lib/x86_64-linux-gnu/gio/modules"' \
+      > "${APPDIR}/apprun-hooks/gio-modules.sh"
+  fi
+
   export LINUXDEPLOY_OUTPUT_VERSION="$VERSION"
   export APPIMAGE_EXTRACT_AND_RUN=1
   PLUGIN_ARGS=""
@@ -70,12 +82,17 @@ do_appimage() {
       export PATH="${ROOT}/scripts:${PATH}"
     fi
   fi
+  EXTRA_LIB=""
+  if [ -f "${GIOMOD}/libgiognutls.so" ]; then
+    EXTRA_LIB="--library ${GIOMOD}/libgiognutls.so"
+  fi
   # shellcheck disable=SC2086
   linuxdeploy --appdir "$APPDIR" \
     --executable "${APPDIR}/usr/bin/ephemeris" \
     --desktop-file "${APPDIR}/usr/share/applications/ephemeris.desktop" \
     --icon-file "${APPDIR}/usr/share/icons/hicolor/scalable/apps/ephemeris.svg" \
     $PLUGIN_ARGS \
+    $EXTRA_LIB \
     --output appimage
   mkdir -p "$DISTDIR"
   for f in "${ROOT}/Ephemeris-${VERSION}"-*.AppImage \
