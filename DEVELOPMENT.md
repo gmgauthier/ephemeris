@@ -23,7 +23,7 @@ Reference window: `brand/ui-reference.svg`
 | Metaphor | One ring-bound book. Section tabs on the right |
 | v1 sections | **Calendar** + **To Do** + **Contacts** |
 | Contacts | First, Last, Phone, Email (a field, not a mailbox), Timezone, Notes (1000 plain text). Sort by last name. A–Z jump. Evergreen tab. `@` name completion in appointment and To Do add. No vCard |
-| Network | None. No mail, no CalDAV, no online account. Mail is a separate application. |
+| Network | Optional HTTPS iCalendar (.ics) URL subscribe, read-only overlay. No CalDAV, no account, no mail. |
 | Parked | Notepad, Planner, Anniversary, Calls, recurrence, alarms, vCard import |
 | v1 format | UTF-8 XML, extension `.ephemeris`. libxml2. Not `.ics` native, not Lotus `.ORG` |
 | Calendar | Monday-first month. Two-day spread (M1). 08:00–18:00, 30-minute slots |
@@ -43,7 +43,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## 3. Traps
 
-- Evolution / CalDAV / native `.ics`
+- Evolution / CalDAV / native `.ics` as the binder identity (HTTPS ICS subscribe is overlay only)
 - Mail, IMAP, SMTP, or any online account
 - vCard import, YOLO-dex index cards, day-page contact show-through
 - Photoreal leather

@@ -12,9 +12,21 @@ constexpr int kDayStart = 8 * 60;
 constexpr int kDayEnd = 18 * 60;
 constexpr int kStep = 30;
 
+bool all_day(const Appointment& a)
+{
+  return a.start_min == 0 && a.end_min >= 24 * 60;
+}
+
+bool in_grid(const Appointment& a)
+{
+  return !all_day(a) && a.start_min >= kDayStart && a.start_min < kDayEnd;
+}
+
 const Appointment* covering(const std::vector<Appointment>& list, int mins)
 {
   for (const auto& a : list) {
+    if (all_day(a) || !in_grid(a))
+      continue;
     if (mins >= a.start_min && mins < a.end_min)
       return &a;
   }
@@ -39,6 +51,11 @@ DaySpread::DaySpread()
 void DaySpread::set_binder(Binder* b)
 {
   binder_ = b;
+}
+
+void DaySpread::set_remote(RemoteCalendars* r)
+{
+  remote_ = r;
 }
 
 void DaySpread::set_left_date(const Glib::Date& d)
@@ -96,6 +113,32 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
   std::vector<Appointment> items;
   if (binder_)
     items = binder_->for_date(date);
+  if (remote_) {
+    const auto rem = remote_->for_date(date);
+    items.insert(items.end(), rem.begin(), rem.end());
+  }
+
+  for (const auto& a : items) {
+    if (!all_day(a))
+      continue;
+    auto* ev = Gtk::manage(new Gtk::EventBox());
+    ev->set_visible_window(true);
+    ev->get_style_context()->add_class("ephemeris-slot");
+    ev->get_style_context()->add_class("ephemeris-slot-remote");
+    auto* lab = Gtk::manage(new Gtk::Label("All day  " + a.text));
+    lab->set_xalign(0.0);
+    lab->set_ellipsize(Pango::ELLIPSIZE_END);
+    ev->add(*lab);
+    const Appointment copy = a;
+    ev->add_events(Gdk::BUTTON_PRESS_MASK);
+    ev->signal_button_press_event().connect([this, copy](GdkEventButton* e) {
+      if (!e || e->button != 1)
+        return false;
+      show_remote(copy);
+      return true;
+    });
+    list->pack_start(*ev, Gtk::PACK_SHRINK);
+  }
 
   for (int m = kDayStart; m < kDayEnd; m += kStep) {
     const Appointment* hit = covering(items, m);
@@ -104,11 +147,13 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
     ev->get_style_context()->add_class("ephemeris-slot");
     Glib::ustring label = format_hm(m);
     if (hit && hit->start_min == m) {
-      ev->get_style_context()->add_class("ephemeris-slot-busy");
+      ev->get_style_context()->add_class(hit->remote ? "ephemeris-slot-remote"
+                                                     : "ephemeris-slot-busy");
       label += "  ";
       label += hit->text;
     } else if (hit) {
-      ev->get_style_context()->add_class("ephemeris-slot-busy");
+      ev->get_style_context()->add_class(hit->remote ? "ephemeris-slot-remote"
+                                                     : "ephemeris-slot-busy");
       label += "  ·";
     }
     auto* lab = Gtk::manage(new Gtk::Label(label));
@@ -119,11 +164,49 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
     const Glib::Date d = date;
     const int start = m;
     const int id = hit ? hit->id : 0;
+    const bool is_remote = hit && hit->remote;
+    Appointment remote_copy;
+    if (is_remote)
+      remote_copy = *hit;
     ev->add_events(Gdk::BUTTON_PRESS_MASK);
-    ev->signal_button_press_event().connect([this, d, start, id](GdkEventButton* e) {
+    ev->signal_button_press_event().connect(
+        [this, d, start, id, is_remote, remote_copy](GdkEventButton* e) {
+          if (!e || e->button != 1)
+            return false;
+          if (is_remote)
+            show_remote(remote_copy);
+          else
+            edit_slot(d, start, id);
+          return true;
+        });
+    list->pack_start(*ev, Gtk::PACK_SHRINK);
+  }
+
+  for (const auto& a : items) {
+    if (all_day(a) || in_grid(a))
+      continue;
+    auto* ev = Gtk::manage(new Gtk::EventBox());
+    ev->set_visible_window(true);
+    ev->get_style_context()->add_class("ephemeris-slot");
+    if (a.remote)
+      ev->get_style_context()->add_class("ephemeris-slot-remote");
+    else
+      ev->get_style_context()->add_class("ephemeris-slot-busy");
+    Glib::ustring label = format_hm(a.start_min) + "–" + format_hm(a.end_min) + "  " + a.text;
+    auto* lab = Gtk::manage(new Gtk::Label(label));
+    lab->set_xalign(0.0);
+    lab->set_ellipsize(Pango::ELLIPSIZE_END);
+    ev->add(*lab);
+    const Appointment copy = a;
+    const Glib::Date d = date;
+    ev->add_events(Gdk::BUTTON_PRESS_MASK);
+    ev->signal_button_press_event().connect([this, copy, d](GdkEventButton* e) {
       if (!e || e->button != 1)
         return false;
-      edit_slot(d, start, id);
+      if (copy.remote)
+        show_remote(copy);
+      else
+        edit_slot(d, copy.start_min, copy.id);
       return true;
     });
     list->pack_start(*ev, Gtk::PACK_SHRINK);
@@ -248,6 +331,27 @@ void DaySpread::edit_slot(const Glib::Date& date, int start_min, int appt_id)
     binder_->add_appointment(edited);
   signal_changed_.emit();
   refresh();
+}
+
+void DaySpread::show_remote(const Appointment& a)
+{
+  auto* win = dynamic_cast<Gtk::Window*>(get_toplevel());
+  if (!win)
+    return;
+  Glib::ustring title = a.calendar.empty() ? Glib::ustring("Subscribed calendar") : a.calendar;
+  Gtk::MessageDialog dlg(*win, title, false, Gtk::MESSAGE_INFO, Gtk::BUTTONS_OK, true);
+  Glib::ustring body = format_hm(a.start_min);
+  if (a.end_min > a.start_min) {
+    body += "–";
+    body += format_hm(a.end_min);
+  }
+  if (a.start_min == 0 && a.end_min >= 24 * 60)
+    body = "All day";
+  body += "\n";
+  body += a.text;
+  body += "\n\nRead-only. Change this event in the calendar that published the URL.";
+  dlg.set_secondary_text(body);
+  dlg.run();
 }
 
 }  // namespace ephemeris

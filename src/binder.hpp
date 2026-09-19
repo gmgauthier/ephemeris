@@ -18,6 +18,8 @@ struct Appointment {
   int start_min = 8 * 60;
   int end_min = 8 * 60 + 30;
   Glib::ustring text;
+  bool remote = false;
+  Glib::ustring calendar;
 };
 
 struct Todo {

@@ -3,7 +3,9 @@
 #include "main_window.hpp"
 #include "about_dialog.hpp"
 #include "config.hpp"
+#include "fetch.hpp"
 #include "paths.hpp"
+#include "subscribe_dialog.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -46,12 +48,16 @@ struct PrintJob {
   std::set<int> busy;
 };
 
-void collect_day_lines(const Binder& b, const Glib::Date& d, std::vector<Glib::ustring>& lines)
+void collect_day_lines(const Binder& b, const RemoteCalendars& rem, const Glib::Date& d,
+                       std::vector<Glib::ustring>& lines)
 {
   char buf[64];
   g_date_strftime(buf, sizeof(buf), "%A %d %B %Y", const_cast<GDate*>(d.gobj()));
   lines.push_back(Glib::ustring(buf));
-  for (const auto& a : b.for_date(d)) {
+  auto items = b.for_date(d);
+  const auto extra = rem.for_date(d);
+  items.insert(items.end(), extra.begin(), extra.end());
+  for (const auto& a : items) {
     Glib::ustring row = format_hm(a.start_min);
     if (a.end_min > a.start_min) {
       row += "–";
@@ -91,9 +97,14 @@ MainWindow::MainWindow()
   build_toolbar();
 
   binder_.create_new();
+  remotes_.set_subs(settings_.calendars);
+  remotes_.load_caches();
+  settings_.calendars = remotes_.subs();
   spread_.set_binder(&binder_);
+  spread_.set_remote(&remotes_);
   todo_.set_binder(&binder_);
   contacts_.set_binder(&binder_);
+  cal_done_.connect(sigc::mem_fun(*this, &MainWindow::on_cal_fetch_done));
   spread_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   todo_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   contacts_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
@@ -146,6 +157,14 @@ MainWindow::MainWindow()
   tabs_.set_open_count(binder_.open_todo_count());
   show_all();
   restore_session();
+  if (!settings_.calendars.empty())
+    start_cal_fetch();
+}
+
+MainWindow::~MainWindow()
+{
+  if (cal_thread_.joinable())
+    cal_thread_.join();
 }
 
 void MainWindow::load_css()
@@ -193,6 +212,11 @@ void MainWindow::build_menu()
            Gdk::CONTROL_MASK);
   add_item(*file, "Save _As…", sigc::mem_fun(*this, &MainWindow::on_save_as), GDK_KEY_s,
            Gdk::CONTROL_MASK | Gdk::SHIFT_MASK);
+  file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
+  add_item(*file, "Subscribe _calendar…", sigc::mem_fun(*this, &MainWindow::on_subscribe_cal));
+  add_item(*file, "_Unsubscribe calendar…", sigc::mem_fun(*this, &MainWindow::on_unsubscribe_cal));
+  add_item(*file, "_Refresh calendars", sigc::mem_fun(*this, &MainWindow::on_refresh_cals),
+           GDK_KEY_F5);
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*file, "_Print…", sigc::mem_fun(*this, &MainWindow::on_print), GDK_KEY_p,
            Gdk::CONTROL_MASK);
@@ -272,7 +296,10 @@ void MainWindow::update_title()
 
 void MainWindow::refresh_marks()
 {
-  month_.set_marks(binder_.days_in_month(month_.month(), month_.year()));
+  auto days = binder_.days_in_month(month_.month(), month_.year());
+  const auto extra = remotes_.days_in_month(month_.month(), month_.year());
+  days.insert(extra.begin(), extra.end());
+  month_.set_marks(std::move(days));
 }
 
 void MainWindow::show_month()
@@ -568,6 +595,7 @@ void MainWindow::persist()
   }
   settings_.last_cal = (cal_view_ == CalView::spread) ? "spread" : "month";
   settings_.last_date = date_iso(spread_.left_date());
+  settings_.calendars = remotes_.subs();
   settings_.save();
 }
 
@@ -605,6 +633,133 @@ void MainWindow::restore_session()
     show_section(Section::calendar);
 }
 
+void MainWindow::sync_cal_settings()
+{
+  settings_.calendars = remotes_.subs();
+  settings_.save();
+}
+
+void MainWindow::on_subscribe_cal()
+{
+  SubscribeDialog dlg(*this);
+  if (dlg.run() != Gtk::RESPONSE_OK)
+    return;
+  const Glib::ustring url = dlg.url();
+  if (url.empty()) {
+    set_status("Enter a calendar URL.");
+    return;
+  }
+  for (const auto& s : remotes_.subs()) {
+    if (s.url == url.raw()) {
+      set_status("Already subscribed.");
+      return;
+    }
+  }
+  auto subs = remotes_.subs();
+  subs.push_back({url.raw(), {}});
+  remotes_.set_subs(std::move(subs));
+  sync_cal_settings();
+  start_cal_fetch();
+}
+
+void MainWindow::on_unsubscribe_cal()
+{
+  const auto subs = remotes_.subs();
+  if (subs.empty()) {
+    set_status("No subscribed calendars.");
+    return;
+  }
+  Gtk::Dialog dlg("Unsubscribe calendar", *this, true);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Unsubscribe", Gtk::RESPONSE_OK);
+  dlg.set_default_response(Gtk::RESPONSE_OK);
+  auto* combo = Gtk::manage(new Gtk::ComboBoxText());
+  for (const auto& s : subs)
+    combo->append(s.url, s.title.empty() ? Glib::ustring(s.url) : Glib::ustring(s.title));
+  combo->set_active(0);
+  auto* box = dlg.get_content_area();
+  box->set_border_width(12);
+  box->pack_start(*combo, Gtk::PACK_SHRINK);
+  dlg.show_all();
+  if (dlg.run() != Gtk::RESPONSE_OK)
+    return;
+  const Glib::ustring id = combo->get_active_id();
+  remotes_.remove(id.raw());
+  sync_cal_settings();
+  refresh_marks();
+  spread_.refresh();
+  set_status("Unsubscribed.");
+}
+
+void MainWindow::on_refresh_cals()
+{
+  if (remotes_.subs().empty()) {
+    set_status("No subscribed calendars.");
+    return;
+  }
+  start_cal_fetch();
+}
+
+void MainWindow::start_cal_fetch()
+{
+  if (cal_fetching_)
+    return;
+  const auto subs = remotes_.subs();
+  if (subs.empty())
+    return;
+  cal_fetching_ = true;
+  set_status("Refreshing calendars…");
+  if (cal_thread_.joinable())
+    cal_thread_.join();
+  cal_thread_ = std::thread([this, subs]() {
+    std::vector<CalFetch> got;
+    got.reserve(subs.size());
+    for (const auto& s : subs) {
+      CalFetch f;
+      f.url = s.url;
+      f.body = http_get(s.url, f.error);
+      got.push_back(std::move(f));
+    }
+    {
+      std::lock_guard<std::mutex> lock(cal_mutex_);
+      cal_results_ = std::move(got);
+    }
+    cal_done_.emit();
+  });
+}
+
+void MainWindow::on_cal_fetch_done()
+{
+  std::vector<CalFetch> got;
+  {
+    std::lock_guard<std::mutex> lock(cal_mutex_);
+    got.swap(cal_results_);
+  }
+  if (cal_thread_.joinable())
+    cal_thread_.join();
+  cal_fetching_ = false;
+  int ok = 0;
+  Glib::ustring err;
+  for (const auto& f : got) {
+    if (f.body.empty()) {
+      if (err.empty())
+        err = f.error;
+      continue;
+    }
+    remotes_.apply_ics(f.url, f.body);
+    ++ok;
+  }
+  sync_cal_settings();
+  refresh_marks();
+  spread_.refresh();
+  if (ok > 0 && err.empty())
+    set_status(Glib::ustring::compose("%1 calendar(s) updated.", ok));
+  else if (ok > 0)
+    set_status("Some calendars failed: " + err);
+  else
+    set_status("Calendar fetch failed: " + (err.empty() ? Glib::ustring("unknown error") : err));
+}
+
 void MainWindow::on_not_yet(const Glib::ustring& feature)
 {
   set_status(feature + " — coming in a later milestone.");
@@ -640,8 +795,8 @@ void MainWindow::on_print_day()
     left.set_time_current();
   Glib::Date right = left;
   right.add_days(1);
-  collect_day_lines(binder_, left, job->lines);
-  collect_day_lines(binder_, right, job->lines);
+  collect_day_lines(binder_, remotes_, left, job->lines);
+  collect_day_lines(binder_, remotes_, right, job->lines);
   job->title = binder_.display_name();
 
   auto op = Gtk::PrintOperation::create();
@@ -680,9 +835,16 @@ void MainWindow::on_print_month()
   job->start_wd = (wd + 6) % 7;
   job->dim = Glib::Date::get_days_in_month(month_.month(), month_.year());
   job->busy = binder_.days_in_month(month_.month(), month_.year());
+  {
+    const auto extra = remotes_.days_in_month(month_.month(), month_.year());
+    job->busy.insert(extra.begin(), extra.end());
+  }
   for (int d = 1; d <= job->dim; ++d) {
     Glib::Date day(d, month_.month(), month_.year());
-    for (const auto& a : binder_.for_date(day)) {
+    auto items = binder_.for_date(day);
+    const auto extra = remotes_.for_date(day);
+    items.insert(items.end(), extra.begin(), extra.end());
+    for (const auto& a : items) {
       job->lines.push_back(Glib::ustring::format(d) + "  " + format_hm(a.start_min) + "  " +
                            a.text);
     }
