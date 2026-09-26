@@ -7,6 +7,8 @@
 #include <gtkmm.h>
 #include <glibmm/date.h>
 
+#include <vector>
+
 namespace ephemeris {
 
 class PlannerPage : public Gtk::Box {
@@ -32,15 +34,24 @@ class PlannerPage : public Gtk::Box {
  private:
   void rebuild();
   void paint_range(const Glib::Date& a, const Glib::Date& b);
-  void edit_event(int id);
+  void edit_event(int id, bool created);
   void rename_key(int index);
   Gtk::Widget* make_day(int month, int day);
+  Glib::Date date_at_root(gdouble x_root, gdouble y_root) const;
+  void sync_drag_style();
+
+  struct DayCell {
+    Gtk::EventBox* box = nullptr;
+    Glib::Date date;
+  };
 
   Binder* binder_ = nullptr;
   Glib::Date::Year year_ = 2026;
   int category_ = 0;
   bool dragging_ = false;
   Glib::Date drag_start_;
+  Glib::Date drag_end_;
+  std::vector<DayCell> cells_;
   Gtk::Label head_;
   Gtk::Grid grid_;
   Gtk::Box legend_{Gtk::ORIENTATION_HORIZONTAL, 8};
