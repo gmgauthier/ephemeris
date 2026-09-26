@@ -1,12 +1,12 @@
 # Ephemeris backlog
 
-Current release: **v1.0.0**. Last updated: 2026-09-26.
+Current release: **v1.0.1**. Last updated: 2026-09-26.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
 ## High Priority
 
-None. Planner click-drag (one event for the span, title/key/dates) is in this branch.
+None.
 
 ## Low Priority
 
@@ -29,6 +29,8 @@ None. Planner click-drag (one event for the span, title/key/dates) is in this br
 - Bryan’s seal
 
 ## Shipped
+
+**v1.0.1** — Planner click-drag paints a span; one title, key, and From/To for the whole selection.
 
 **v1.0.0** — Planner year wall-chart (Holiday / Visit / Travel / Streaming / Other); local appointment recurrence; Notepad with timestamps; vCard import/export; month-day tooltips.
 

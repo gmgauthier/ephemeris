@@ -1,3 +1,9 @@
+ephemeris (1.0.1-1) unstable; urgency=medium
+
+  * Fix Planner click-drag: one event for the span, title/key/dates dialog.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sat, 26 Sep 2026 21:00:00 +0100
+
 ephemeris (1.0.0-1) unstable; urgency=medium
 
   * Planner section, local appointment recurrence, Notepad pages with
