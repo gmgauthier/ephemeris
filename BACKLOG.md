@@ -1,20 +1,19 @@
 # Ephemeris backlog
 
-Current release: **v1.0.1**. Last updated: 2026-09-26.
+Current release: **v1.0.1**. Last updated: 2026-09-27.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
 ## High Priority
 
-None.
+- **Outlook-class To Do.** Keep the Organizer To Do tab. Add the classic Outlook Tasks fields that the list still lacks: start date, status (not started / in progress / waiting / deferred — completed is today’s done), % complete, categories, a notes body, recurrence on a task (regenerating, not a Calendar appointment). Views: simple list (today), detailed, active, next seven days, overdue, by category. Reminders use the parked **Alarms** item — do not invent a second alarm stack. No task assignment, no Task Request, no flagged mail-as-tasks (Mail is Dispatch).
+- **Outlook-class Notepad.** Keep the Organizer Notepad tab (pages in the binder, not yellow desktop stickies). Add Outlook Notes-style colour, categories, and list views (icons / list / last seven days / by category / by colour) on top of title + body + stamp. Search notes. Do not add OLE, do not forward a page as mail, do not open a second notes guest.
 
 ## Low Priority
 
 - Anniversary section
 - Calls section
 - Alarms
-- **Outlook-class To Do.** Keep the Organizer To Do tab. Add the classic Outlook Tasks fields that the list still lacks: start date, status (not started / in progress / waiting / deferred — completed is today’s done), % complete, categories, a notes body, recurrence on a task (regenerating, not a Calendar appointment). Views: simple list (today), detailed, active, next seven days, overdue, by category. Reminders use the parked **Alarms** item — do not invent a second alarm stack. No task assignment, no Task Request, no flagged mail-as-tasks (Mail is Dispatch).
-- **Outlook-class Notepad.** Keep the Organizer Notepad tab (pages in the binder, not yellow desktop stickies). Add Outlook Notes-style colour, categories, and list views (icons / list / last seven days / by category / by colour) on top of title + body + stamp. Search notes. Do not add OLE, do not forward a page as mail, do not open a second notes guest.
 
 ## Out of Scope
 
