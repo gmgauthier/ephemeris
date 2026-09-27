@@ -24,7 +24,7 @@ Reference window: `brand/ui-reference.svg`
 | v1 sections | **Calendar** + **To Do** + **Contacts** |
 | Contacts | First, Last, Phone, Email (a field, not a mailbox), Timezone, Notes (1000 plain text). Sort by last name. A–Z jump. Evergreen tab. `@` name completion in appointment and To Do add. vCard import/export (N/TEL/EMAIL/NOTE). |
 | Network | Optional HTTPS iCalendar (.ics) URL subscribe, read-only overlay. No CalDAV, no account, no mail. |
-| Parked | Anniversary, Calls, alarms. Recurrence, Planner, Notepad, and vCard import/export are in this tree. |
+| Parked | Anniversary, Calls, alarms. Recurrence, Planner, Notepad, vCard, and Outlook-class To Do / Notepad fields are in this tree. |
 | v1 format | UTF-8 XML, extension `.ephemeris`. libxml2. Not `.ics` native, not Lotus `.ORG` |
 | Calendar | Monday-first month. Two-day spread (M1). 08:00–18:00, 30-minute slots |
 | Brand | LCOS beige / navy. No Bryan’s seal |

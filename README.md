@@ -24,7 +24,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v1.0.1.** Planner click-drag paints a span with one title/key/dates. See [INSTALL.md](INSTALL.md).
+**v1.0.1.** Planner click-drag paints a span with one title/key/dates. See [INSTALL.md](INSTALL.md). To Do has Outlook-class fields and views; Notepad has colour, categories, list views, and search (this tree, next tagged release).
 
 | Doc | What |
 |---|---|

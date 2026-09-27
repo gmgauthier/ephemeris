@@ -1101,8 +1101,21 @@ void MainWindow::on_print_todos()
     if (t.priority > 0)
       row += Glib::ustring::format(t.priority) + " ";
     row += t.text;
+    row += "  ";
+    row += status_label(t.status);
+    row += " ";
+    row += Glib::ustring::format(t.percent) + "%";
+    if (!t.category.empty()) {
+      row += "  [";
+      row += t.category;
+      row += "]";
+    }
+    if (t.has_start) {
+      row += "  start ";
+      row += date_iso(t.start);
+    }
     if (t.has_due) {
-      row += "  ";
+      row += "  due ";
       row += date_iso(t.due);
     }
     job->lines.push_back(row);

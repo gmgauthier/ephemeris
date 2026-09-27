@@ -152,6 +152,172 @@ Recur parse_recur(const std::string& s)
   return Recur::none;
 }
 
+const char* status_attr(TodoStatus s)
+{
+  switch (s) {
+    case TodoStatus::in_progress:
+      return "in_progress";
+    case TodoStatus::waiting:
+      return "waiting";
+    case TodoStatus::deferred:
+      return "deferred";
+    case TodoStatus::completed:
+      return "completed";
+    case TodoStatus::not_started:
+    default:
+      return "not_started";
+  }
+}
+
+TodoStatus parse_status(const std::string& s)
+{
+  if (s == "in_progress")
+    return TodoStatus::in_progress;
+  if (s == "waiting")
+    return TodoStatus::waiting;
+  if (s == "deferred")
+    return TodoStatus::deferred;
+  if (s == "completed")
+    return TodoStatus::completed;
+  return TodoStatus::not_started;
+}
+
+const char* status_label(TodoStatus s)
+{
+  switch (s) {
+    case TodoStatus::in_progress:
+      return "In progress";
+    case TodoStatus::waiting:
+      return "Waiting";
+    case TodoStatus::deferred:
+      return "Deferred";
+    case TodoStatus::completed:
+      return "Completed";
+    case TodoStatus::not_started:
+    default:
+      return "Not started";
+  }
+}
+
+const char* colour_attr(NoteColour c)
+{
+  switch (c) {
+    case NoteColour::blue:
+      return "blue";
+    case NoteColour::green:
+      return "green";
+    case NoteColour::pink:
+      return "pink";
+    case NoteColour::white:
+      return "white";
+    case NoteColour::yellow:
+    default:
+      return "yellow";
+  }
+}
+
+NoteColour parse_colour(const std::string& s)
+{
+  if (s == "blue")
+    return NoteColour::blue;
+  if (s == "green")
+    return NoteColour::green;
+  if (s == "pink")
+    return NoteColour::pink;
+  if (s == "white")
+    return NoteColour::white;
+  return NoteColour::yellow;
+}
+
+const char* colour_label(NoteColour c)
+{
+  switch (c) {
+    case NoteColour::blue:
+      return "Blue";
+    case NoteColour::green:
+      return "Green";
+    case NoteColour::pink:
+      return "Pink";
+    case NoteColour::white:
+      return "White";
+    case NoteColour::yellow:
+    default:
+      return "Yellow";
+  }
+}
+
+const char* colour_hex(NoteColour c)
+{
+  switch (c) {
+    case NoteColour::blue:
+      return "#A8D4FF";
+    case NoteColour::green:
+      return "#B7E0A8";
+    case NoteColour::pink:
+      return "#F4B6C8";
+    case NoteColour::white:
+      return "#F7F5EF";
+    case NoteColour::yellow:
+    default:
+      return "#FFF2A8";
+  }
+}
+
+void add_recur(Glib::Date& d, Recur r, int interval)
+{
+  if (!d.valid())
+    return;
+  const int n = interval > 0 ? interval : 1;
+  switch (r) {
+    case Recur::daily:
+      d.add_days(n);
+      break;
+    case Recur::weekly:
+      d.add_days(7 * n);
+      break;
+    case Recur::monthly:
+      d.add_months(n);
+      break;
+    case Recur::yearly:
+      d.add_years(n);
+      break;
+    case Recur::none:
+    default:
+      break;
+  }
+}
+
+void normalize_todo(Todo& t)
+{
+  if (t.percent < 0)
+    t.percent = 0;
+  if (t.percent > 100)
+    t.percent = 100;
+  if (t.recur_interval < 1)
+    t.recur_interval = 1;
+  if (t.done || t.status == TodoStatus::completed || t.percent == 100) {
+    t.done = true;
+    t.status = TodoStatus::completed;
+    t.percent = 100;
+    if (!t.has_completed) {
+      t.has_completed = true;
+      t.completed.set_time_current();
+    }
+  } else {
+    t.done = false;
+    if (t.status == TodoStatus::completed)
+      t.status = TodoStatus::not_started;
+    t.has_completed = false;
+  }
+}
+
+bool stamp_to_date(const std::string& stamped, Glib::Date& out)
+{
+  if (stamped.size() < 10)
+    return false;
+  return date_from_iso(stamped.substr(0, 10), out);
+}
+
 const char* planner_color(int category)
 {
   static const char* colors[] = {"#C45C4A", "#1660C4", "#1B4D3E", "#B8860B", "#5C4A6B"};
@@ -474,6 +640,7 @@ int Binder::add_todo(const Todo& t)
     create_new();
   Todo n = t;
   n.id = next_todo_id_++;
+  normalize_todo(n);
   todos_.push_back(n);
   dirty_ = true;
   return n.id;
@@ -484,11 +651,62 @@ bool Binder::update_todo(const Todo& t)
   for (auto& x : todos_) {
     if (x.id == t.id) {
       x = t;
+      normalize_todo(x);
       dirty_ = true;
       return true;
     }
   }
   return false;
+}
+
+bool Binder::complete_todo(int id)
+{
+  Todo prev;
+  bool found = false;
+  for (auto& x : todos_) {
+    if (x.id != id)
+      continue;
+    if (x.done)
+      return true;
+    prev = x;
+    x.done = true;
+    x.status = TodoStatus::completed;
+    x.percent = 100;
+    normalize_todo(x);
+    dirty_ = true;
+    found = true;
+    break;
+  }
+  if (!found)
+    return false;
+  if (prev.recur == Recur::none || (!prev.has_due && !prev.has_start))
+    return true;
+  Todo n = prev;
+  n.done = false;
+  n.status = TodoStatus::not_started;
+  n.percent = 0;
+  n.has_completed = false;
+  if (n.has_due)
+    add_recur(n.due, n.recur, n.recur_interval);
+  if (n.has_start)
+    add_recur(n.start, n.recur, n.recur_interval);
+  if (n.has_until && n.until.valid()) {
+    const Glib::Date& check = n.has_due ? n.due : n.start;
+    if (check.valid() && check.compare(n.until) > 0)
+      return true;
+  }
+  add_todo(n);
+  return true;
+}
+
+std::vector<Glib::ustring> Binder::todo_categories() const
+{
+  std::set<Glib::ustring> names;
+  for (const auto& t : todos_) {
+    if (!t.category.empty())
+      names.insert(t.category);
+  }
+  return {names.begin(), names.end()};
 }
 
 bool Binder::remove_todo(int id)
@@ -643,6 +861,16 @@ int Binder::add_note(const Note& n)
   return x.id;
 }
 
+std::vector<Glib::ustring> Binder::note_categories() const
+{
+  std::set<Glib::ustring> names;
+  for (const auto& n : notes_) {
+    if (!n.category.empty())
+      names.insert(n.category);
+  }
+  return {names.begin(), names.end()};
+}
+
 bool Binder::update_note(const Note& n)
 {
   for (auto& x : notes_) {
@@ -723,14 +951,26 @@ bool Binder::write_file(const std::string& path) const
   }
   for (const auto& n : notes_) {
     os << "  <note id=\"" << n.id << "\" title=\"" << xml_escape_attr(n.title) << "\" stamped=\""
-       << xml_escape_attr(n.stamped) << "\">" << xml_escape(n.body) << "</note>\n";
+       << xml_escape_attr(n.stamped) << "\" colour=\"" << colour_attr(n.colour) << "\" category=\""
+       << xml_escape_attr(n.category) << "\">" << xml_escape(n.body) << "</note>\n";
   }
   for (const auto& t : todos_) {
     os << "  <todo id=\"" << t.id << "\" done=\"" << (t.done ? "true" : "false") << "\" priority=\""
-       << t.priority << "\"";
+       << t.priority << "\" status=\"" << status_attr(t.status) << "\" percent=\"" << t.percent
+       << "\" text=\"" << xml_escape_attr(t.text) << "\" category=\"" << xml_escape_attr(t.category)
+       << "\"";
     if (t.has_due)
       os << " due=\"" << date_iso(t.due) << "\"";
-    os << ">" << xml_escape(t.text) << "</todo>\n";
+    if (t.has_start)
+      os << " start=\"" << date_iso(t.start) << "\"";
+    if (t.has_completed && t.completed.valid())
+      os << " completed=\"" << date_iso(t.completed) << "\"";
+    if (t.recur != Recur::none) {
+      os << " recur=\"" << recur_attr(t.recur) << "\" interval=\"" << t.recur_interval << "\"";
+      if (t.has_until && t.until.valid())
+        os << " until=\"" << date_iso(t.until) << "\"";
+    }
+    os << ">" << xml_escape(t.notes) << "</todo>\n";
   }
   for (const auto& c : contacts_) {
     os << "  <contact id=\"" << c.id << "\" first=\"" << xml_escape_attr(c.first) << "\" last=\""
@@ -837,7 +1077,31 @@ bool Binder::open(const std::string& path)
       t.priority = static_cast<int>(g_ascii_strtoll(node_prop(n, "priority").c_str(), nullptr, 10));
       const std::string due = node_prop(n, "due");
       t.has_due = !due.empty() && date_from_iso(due, t.due);
-      t.text = node_text(n);
+      const std::string start = node_prop(n, "start");
+      t.has_start = !start.empty() && date_from_iso(start, t.start);
+      const std::string completed = node_prop(n, "completed");
+      t.has_completed = !completed.empty() && date_from_iso(completed, t.completed);
+      t.status = parse_status(node_prop(n, "status"));
+      const std::string pct = node_prop(n, "percent");
+      if (!pct.empty())
+        t.percent = static_cast<int>(g_ascii_strtoll(pct.c_str(), nullptr, 10));
+      t.category = node_prop(n, "category");
+      t.recur = parse_recur(node_prop(n, "recur"));
+      const std::string iv = node_prop(n, "interval");
+      if (!iv.empty())
+        t.recur_interval = std::max(1, static_cast<int>(g_ascii_strtoll(iv.c_str(), nullptr, 10)));
+      const std::string until = node_prop(n, "until");
+      t.has_until = !until.empty() && date_from_iso(until, t.until);
+      const std::string subj = node_prop(n, "text");
+      if (!subj.empty()) {
+        t.text = subj;
+        t.notes = node_text(n);
+      } else {
+        t.text = node_text(n);
+      }
+      if (t.done && t.status == TodoStatus::not_started)
+        t.status = TodoStatus::completed;
+      normalize_todo(t);
       if (t.id > max_todo)
         max_todo = t.id;
       loaded_todos.push_back(std::move(t));
@@ -886,6 +1150,8 @@ bool Binder::open(const std::string& path)
         note.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
       note.title = node_prop(n, "title");
       note.stamped = node_prop(n, "stamped");
+      note.colour = parse_colour(node_prop(n, "colour"));
+      note.category = node_prop(n, "category");
       note.body = node_text(n);
       if (note.id > max_note)
         max_note = note.id;

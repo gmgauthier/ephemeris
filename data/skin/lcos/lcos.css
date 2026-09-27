@@ -188,6 +188,25 @@ window.ephemeris-window {
   font-size: 11px;
 }
 
+.ephemeris-group-head {
+  color: #0B1D38;
+  font-weight: bold;
+  background-color: #E8E4D8;
+  padding: 4px 8px;
+}
+
+.ephemeris-note-chip {
+  border: 1px solid #C4C0B4;
+  min-width: 88px;
+  min-height: 64px;
+}
+
+.ephemeris-note-chip-yellow { background-color: #FFF2A8; }
+.ephemeris-note-chip-blue { background-color: #A8D4FF; }
+.ephemeris-note-chip-green { background-color: #B7E0A8; }
+.ephemeris-note-chip-pink { background-color: #F4B6C8; }
+.ephemeris-note-chip-white { background-color: #F7F5EF; }
+
 .ephemeris-todo-line {
   color: #1A1A1A;
   padding: 6px 8px;

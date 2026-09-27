@@ -23,9 +23,13 @@ class TodoPage : public Gtk::Box {
  private:
   void on_add_task();
   void edit_item(int id);
-  Gtk::Widget* make_row(const Todo& t);
+  void on_toggle_done(int id, bool done);
+  Gtk::Widget* make_row(const Todo& t, bool detailed);
+  Gtk::Widget* make_group(const Glib::ustring& title);
+  std::vector<Todo> visible() const;
 
   Binder* binder_ = nullptr;
+  Gtk::ComboBoxText view_;
   Gtk::Box list_{Gtk::ORIENTATION_VERTICAL, 2};
   sigc::signal<void> signal_changed_;
 };
