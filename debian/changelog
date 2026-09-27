@@ -1,3 +1,11 @@
+ephemeris (1.1.0-1) unstable; urgency=medium
+
+  * Outlook-class To Do: start, status, percent, category, notes,
+    regenerating recurrence, and views.
+  * Outlook-class Notepad: colour, categories, list views, and search.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sun, 27 Sep 2026 11:30:00 +0100
+
 ephemeris (1.0.1-1) unstable; urgency=medium
 
   * Fix Planner click-drag: one event for the span, title/key/dates dialog.

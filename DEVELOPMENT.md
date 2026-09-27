@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/ephemeris (origin), https://github.c
 
 Reference window: `brand/ui-reference.svg`
 
-## Status (2026-09-19)
+## Status (2026-09-27)
 
-**v1.0.1.** Planner click-drag paints a span with one title/key/dates. Tags through `v1.0.1`.
+**v1.1.0.** Outlook-class To Do and Notepad. Tags through `v1.1.0`.
 
 ## 1. Locked decisions
 

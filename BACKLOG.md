@@ -1,12 +1,12 @@
 # Ephemeris backlog
 
-Current release: **v1.0.1**. Last updated: 2026-09-26.
+Current release: **v1.1.0**. Last updated: 2026-09-27.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
 ## High Priority
 
-None. Outlook-class To Do and Notepad are in this branch (ship on the next tagged release).
+None.
 
 ## Low Priority
 
@@ -27,6 +27,8 @@ None. Outlook-class To Do and Notepad are in this branch (ship on the next tagge
 - Bryan’s seal
 
 ## Shipped
+
+**v1.1.0** — Outlook-class To Do (start, status, percent, category, notes, regenerating recurrence, views). Outlook-class Notepad (colour, categories, list views, search).
 
 **v1.0.1** — Planner click-drag paints a span; one title, key, and From/To for the whole selection.
 
