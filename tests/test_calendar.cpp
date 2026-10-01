@@ -196,5 +196,48 @@ int main()
     CHECK(again[0].email == people[0].email);
   }
 
+  {
+    const char* text =
+        "BEGIN:VCALENDAR\n"
+        "X-WR-CALNAME:Desk\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260105T220000\n"
+        "DTEND:20260106T010000\n"
+        "SUMMARY:Night\n"
+        "END:VEVENT\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260105T090000\n"
+        "DTEND:20260105T103000\n"
+        "SUMMARY:Standup\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n";
+    const auto parsed = ephemeris::parse_ics(text, from, to);
+    CHECK(parsed.error.empty());
+    CHECK(parsed.title == "Desk");
+    int nights = 0;
+    int standups = 0;
+    for (const auto& item : parsed.items) {
+      if (item.text == "Night") {
+        ++nights;
+        if (item.date.compare(day(5, Glib::Date::JANUARY, 2026)) == 0) {
+          CHECK(item.start_min == 22 * 60);
+          CHECK(item.end_min == 24 * 60);
+        } else if (item.date.compare(day(6, Glib::Date::JANUARY, 2026)) == 0) {
+          CHECK(item.start_min == 0);
+          CHECK(item.end_min == 60);
+        } else {
+          CHECK(false);
+        }
+      } else if (item.text == "Standup") {
+        ++standups;
+        CHECK(item.date.compare(day(5, Glib::Date::JANUARY, 2026)) == 0);
+        CHECK(item.start_min == 9 * 60);
+        CHECK(item.end_min == 10 * 60 + 30);
+      }
+    }
+    CHECK(nights == 2);
+    CHECK(standups == 1);
+  }
+
   return suite_test::done("calendar");
 }

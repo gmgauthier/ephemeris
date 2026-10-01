@@ -196,6 +196,86 @@ void to_local(Stamp& s)
   g_date_time_unref(loc);
 }
 
+/* RFC 5545 dur-value, minute resolution. Seconds are dropped. A leading '-' is
+ * rejected so the caller leaves the end unset. */
+bool duration_minutes(const std::string& raw, long& out_mins)
+{
+  size_t i = 0;
+  if (i < raw.size() && (raw[i] == '+' || raw[i] == '-')) {
+    if (raw[i] == '-')
+      return false;
+    ++i;
+  }
+  if (i >= raw.size() || raw[i] != 'P')
+    return false;
+  ++i;
+  bool any = false;
+  bool in_time = false;
+  long weeks = 0;
+  long days = 0;
+  long hours = 0;
+  long minutes = 0;
+  while (i < raw.size()) {
+    if (raw[i] == 'T') {
+      if (in_time)
+        return false;
+      in_time = true;
+      ++i;
+      continue;
+    }
+    if (!std::isdigit(static_cast<unsigned char>(raw[i])))
+      return false;
+    long n = 0;
+    while (i < raw.size() && std::isdigit(static_cast<unsigned char>(raw[i]))) {
+      n = n * 10 + (raw[i] - '0');
+      if (n > 1000000)
+        return false;
+      ++i;
+    }
+    if (i >= raw.size())
+      return false;
+    const char u = raw[i++];
+    if (!in_time) {
+      if (u == 'W')
+        weeks = n;
+      else if (u == 'D')
+        days = n;
+      else
+        return false;
+    } else if (u == 'H') {
+      hours = n;
+    } else if (u == 'M') {
+      minutes = n;
+    } else if (u == 'S') {
+      /* Appointments are stored in minutes. */
+    } else {
+      return false;
+    }
+    any = true;
+  }
+  if (!any)
+    return false;
+  out_mins = ((weeks * 7L + days) * 24L + hours) * 60L + minutes;
+  return true;
+}
+
+/* End stamp is DTSTART plus a duration, still in DTSTART's zone. */
+Stamp stamp_plus_minutes(const Stamp& start, long add_mins)
+{
+  Stamp end = start;
+  if (!start.ok || start.all_day || add_mins < 0)
+    return Stamp{};
+  const long day_mins = 24L * 60L;
+  const long total = static_cast<long>(start.mins) + add_mins;
+  const long add_days = total / day_mins;
+  end.mins = static_cast<int>(total % day_mins);
+  end.all_day = false;
+  if (add_days > 0)
+    end.date.add_days(static_cast<int>(add_days));
+  end.ok = end.date.valid();
+  return end;
+}
+
 enum class Freq { none, daily, weekly, monthly, yearly };
 
 struct RRule {
@@ -318,18 +398,42 @@ std::vector<Glib::Date> byday_in_year(int year, const std::vector<ByDay>& rules)
   return dates_for_byday(jan, span, rules);
 }
 
-/* COUNT counts every instance from DTSTART, including those outside [from,to]. */
+/* COUNT counts every instance from DTSTART, including those outside [from,to].
+ * day_span > 0 means the timed event ends on a later day. proto.start_min is the
+ * first day's clock time and proto.end_min is the clock time on the last day.
+ * Each slice is drawn on its own date. The whole span still counts as one instance. */
 bool take_instance(std::vector<Appointment>& out, const Appointment& proto, const Glib::Date& d,
                    const Glib::Date& from, const Glib::Date& to, int& emitted, int count,
-                   bool has_until, const Glib::Date& until)
+                   bool has_until, const Glib::Date& until, int day_span)
 {
   if (has_until && d.compare(until) > 0)
     return false;
   ++emitted;
-  if (d.compare(from) >= 0 && d.compare(to) <= 0) {
+  auto push_day = [&](const Glib::Date& day, int start_min, int end_min) {
+    if (end_min <= start_min)
+      return;
+    if (day.compare(from) < 0 || day.compare(to) > 0)
+      return;
     Appointment a = proto;
-    a.date = d;
+    a.date = day;
+    a.start_min = start_min;
+    a.end_min = end_min;
     out.push_back(std::move(a));
+  };
+  if (day_span <= 0) {
+    if (d.compare(from) >= 0 && d.compare(to) <= 0)
+      push_day(d, proto.start_min, proto.end_min);
+  } else {
+    for (int i = 0; i <= day_span; ++i) {
+      Glib::Date day = d;
+      day.add_days(i);
+      if (i == 0)
+        push_day(day, proto.start_min, 24 * 60);
+      else if (i == day_span)
+        push_day(day, 0, proto.end_min);
+      else
+        push_day(day, 0, 24 * 60);
+    }
   }
   if (count > 0 && emitted >= count)
     return false;
@@ -339,17 +443,23 @@ bool take_instance(std::vector<Appointment>& out, const Appointment& proto, cons
 void expand(const Appointment& proto, const Stamp& start, const Stamp& end, const RRule& rule,
             const Glib::Date& from, const Glib::Date& to, std::vector<Appointment>& out)
 {
+  int day_span = 0;
+  if (!start.all_day && end.ok && !end.all_day && start.date.valid() && end.date.valid()) {
+    day_span = static_cast<int>(end.date.get_julian()) - static_cast<int>(start.date.get_julian());
+    if (day_span < 0)
+      day_span = 0;
+  }
   const int dur = end.ok ? (end.all_day ? 0 : end.mins - start.mins) : 30;
   Appointment base = proto;
   base.start_min = start.all_day ? 0 : start.mins;
   base.end_min = start.all_day ? 24 * 60 : (end.ok && !end.all_day ? end.mins : start.mins + 30);
-  if (!start.all_day && base.end_min <= base.start_min)
+  if (!start.all_day && day_span == 0 && base.end_min <= base.start_min)
     base.end_min = base.start_min + (dur > 0 ? dur : 30);
   base.remote = true;
 
   if (rule.freq == Freq::none) {
     int emitted = 0;
-    take_instance(out, base, start.date, from, to, emitted, 0, false, start.date);
+    take_instance(out, base, start.date, from, to, emitted, 0, false, start.date, day_span);
     return;
   }
 
@@ -362,7 +472,8 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
     while (emitted < cap) {
       if (d.compare(to) > 0)
         break;
-      if (!take_instance(out, base, d, from, to, emitted, rule.count, rule.has_until, rule.until))
+      if (!take_instance(out, base, d, from, to, emitted, rule.count, rule.has_until, rule.until,
+                         day_span))
         break;
       d.add_days(interval);
     }
@@ -387,7 +498,8 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
         d.add_days(bd);
         if (d.compare(start.date) < 0)
           continue;
-        if (!take_instance(out, base, d, from, to, emitted, rule.count, rule.has_until, rule.until))
+        if (!take_instance(out, base, d, from, to, emitted, rule.count, rule.has_until, rule.until,
+                           day_span))
           return;
       }
     }
@@ -421,7 +533,7 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
             break;
           }
           if (!take_instance(out, base, d, from, to, emitted, rule.count, rule.has_until,
-                             rule.until)) {
+                             rule.until, day_span)) {
             stop = true;
             break;
           }
@@ -444,7 +556,8 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
         continue;
       if (cur.compare(to) > 0)
         break;
-      if (!take_instance(out, base, cur, from, to, emitted, rule.count, rule.has_until, rule.until))
+      if (!take_instance(out, base, cur, from, to, emitted, rule.count, rule.has_until, rule.until,
+                         day_span))
         break;
     }
   }
@@ -485,6 +598,14 @@ ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib:
           start = parse_stamp(kv.first, kv.second);
         else if (kv.first.compare(0, 5, "DTEND") == 0)
           end = parse_stamp(kv.first, kv.second);
+      }
+      if (!end.ok && start.ok && !start.all_day) {
+        const auto dur = ev.find("DURATION");
+        if (dur != ev.end()) {
+          long mins = 0;
+          if (duration_minutes(dur->second, mins))
+            end = stamp_plus_minutes(start, mins);
+        }
       }
       to_local(start);
       to_local(end);
