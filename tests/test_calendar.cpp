@@ -316,5 +316,42 @@ int main()
     CHECK(has_day(parsed, day(31, Glib::Date::DECEMBER, 2026)));
   }
 
+  {
+    const char* text =
+        "BEGIN:VCALENDAR\n"
+        "X-WR-CALNAME:Desk\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260106T090000\n"
+        "DTEND:20260106T100000\n"
+        "SUMMARY:Shift\n"
+        "RRULE:FREQ=WEEKLY;BYDAY=SU,TU;COUNT=1\n"
+        "END:VEVENT\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260106T150000\n"
+        "DTEND:20260106T160000\n"
+        "SUMMARY:Once\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n";
+    const auto parsed = ephemeris::parse_ics(text, from, to);
+    CHECK(parsed.error.empty());
+    CHECK(parsed.title == "Desk");
+    int shifts = 0;
+    int onces = 0;
+    for (const auto& item : parsed.items) {
+      if (item.text == "Shift") {
+        ++shifts;
+        CHECK(item.date.compare(day(6, Glib::Date::JANUARY, 2026)) == 0);
+        CHECK(item.start_min == 9 * 60);
+        CHECK(item.end_min == 10 * 60);
+      } else if (item.text == "Once") {
+        ++onces;
+        CHECK(item.date.compare(day(6, Glib::Date::JANUARY, 2026)) == 0);
+        CHECK(item.start_min == 15 * 60);
+      }
+    }
+    CHECK(shifts == 1);
+    CHECK(onces == 1);
+  }
+
   return suite_test::done("calendar");
 }
