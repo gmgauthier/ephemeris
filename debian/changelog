@@ -1,3 +1,9 @@
+ephemeris (1.1.8-1) unstable; urgency=medium
+
+  * Keep a property's value when the line carries parameters.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 01 Oct 2026 22:54:43 +0100
+
 ephemeris (1.1.7-1) unstable; urgency=medium
 
   * Skip a monthly or yearly recurrence when the month has no such day.
