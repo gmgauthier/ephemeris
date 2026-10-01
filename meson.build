@@ -165,3 +165,14 @@ ephemeris_params_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('params', ephemeris_params_tests)
+
+ephemeris_case_tests = executable(
+  'ephemeris-case-tests',
+  'tests/test_case.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('casefold', ephemeris_case_tests)

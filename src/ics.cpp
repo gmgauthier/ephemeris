@@ -49,6 +49,15 @@ std::string ics_unescape(const std::string& in)
   return out;
 }
 
+std::string ascii_upper(std::string s)
+{
+  for (char& c : s) {
+    if (c >= 'a' && c <= 'z')
+      c = static_cast<char>(c - 'a' + 'A');
+  }
+  return s;
+}
+
 int monday_index(Glib::Date::Weekday wd)
 {
   const int n = static_cast<int>(wd);
@@ -134,11 +143,11 @@ Stamp parse_stamp(const std::string& key, const std::string& value)
         params.substr(p, semi == std::string::npos ? std::string::npos : semi - p);
     const auto eq = piece.find('=');
     if (eq != std::string::npos) {
-      const std::string n = piece.substr(0, eq);
+      const std::string n = ascii_upper(piece.substr(0, eq));
       const std::string v = piece.substr(eq + 1);
       if (n == "TZID")
         tzid = v;
-      else if (n == "VALUE" && v == "DATE")
+      else if (n == "VALUE" && ascii_upper(v) == "DATE")
         value_date = true;
     }
     if (semi == std::string::npos)
@@ -147,7 +156,7 @@ Stamp parse_stamp(const std::string& key, const std::string& value)
   }
 
   std::string v = value;
-  if (!v.empty() && v.back() == 'Z') {
+  if (!v.empty() && (v.back() == 'Z' || v.back() == 'z')) {
     s.utc = true;
     v.pop_back();
   }
@@ -161,7 +170,7 @@ Stamp parse_stamp(const std::string& key, const std::string& value)
       s.ok = s.date.valid();
     }
   }
-  if (v.size() >= 15 && v[8] == 'T' && !value_date)
+  if (v.size() >= 15 && (v[8] == 'T' || v[8] == 't') && !value_date)
     s.mins = parse_hhmm(v.substr(9, 6));
   else
     s.all_day = true;
@@ -198,8 +207,9 @@ void to_local(Stamp& s)
 
 /* RFC 5545 dur-value, minute resolution. Seconds are dropped. A leading '-' is
  * rejected so the caller leaves the end unset. */
-bool duration_minutes(const std::string& raw, long& out_mins)
+bool duration_minutes(const std::string& raw_in, long& out_mins)
 {
+  const std::string raw = ascii_upper(raw_in);
   size_t i = 0;
   if (i < raw.size() && (raw[i] == '+' || raw[i] == '-')) {
     if (raw[i] == '-')
@@ -297,16 +307,17 @@ RRule parse_rrule(const std::string& raw)
     const std::string piece = s.substr(p, semi == std::string::npos ? std::string::npos : semi - p);
     const auto eq = piece.find('=');
     if (eq != std::string::npos) {
-      const std::string n = piece.substr(0, eq);
+      const std::string n = ascii_upper(piece.substr(0, eq));
       const std::string v = piece.substr(eq + 1);
+      const std::string vu = ascii_upper(v);
       if (n == "FREQ") {
-        if (v == "DAILY")
+        if (vu == "DAILY")
           r.freq = Freq::daily;
-        else if (v == "WEEKLY")
+        else if (vu == "WEEKLY")
           r.freq = Freq::weekly;
-        else if (v == "MONTHLY")
+        else if (vu == "MONTHLY")
           r.freq = Freq::monthly;
-        else if (v == "YEARLY")
+        else if (vu == "YEARLY")
           r.freq = Freq::yearly;
       } else if (n == "INTERVAL")
         r.interval = std::max(1, std::atoi(v.c_str()));
@@ -592,7 +603,7 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
   }
 }
 
-/* Name before ';' parameters. Case is left as written. */
+/* Name before ';' parameters. The caller folds case. */
 std::string property_name(const std::string& key)
 {
   const auto sc = key.find(';');
@@ -613,22 +624,26 @@ ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib:
   while (std::getline(in, line)) {
     if (!line.empty() && line.back() == '\r')
       line.pop_back();
-    if (line.compare(0, 12, "X-WR-CALNAME") == 0) {
+    const std::string folded = ascii_upper(line);
+    {
       const auto c = line.find(':');
-      if (c != std::string::npos && out.title.empty())
-        out.title = ics_unescape(line.substr(c + 1));
-      continue;
+      const std::string head = ascii_upper(c == std::string::npos ? line : line.substr(0, c));
+      if (head.compare(0, 12, "X-WR-CALNAME") == 0) {
+        if (c != std::string::npos && out.title.empty())
+          out.title = ics_unescape(line.substr(c + 1));
+        continue;
+      }
     }
-    if (line == "BEGIN:VEVENT") {
+    if (folded == "BEGIN:VEVENT") {
       ev.clear();
       stamp_key.clear();
       in_event = true;
       continue;
     }
-    if (line == "END:VEVENT") {
+    if (folded == "END:VEVENT") {
       in_event = false;
       const auto st = ev.find("STATUS");
-      if (st != ev.end() && st->second == "CANCELLED")
+      if (st != ev.end() && ascii_upper(st->second) == "CANCELLED")
         continue;
       Stamp start, end;
       const auto st_it = ev.find("DTSTART");
@@ -672,14 +687,15 @@ ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib:
     if (c == std::string::npos)
       continue;
     const std::string raw_key = line.substr(0, c);
-    const std::string name = property_name(raw_key);
+    const std::string name = ascii_upper(property_name(raw_key));
     if (name.empty())
       continue;
     ev[name] = line.substr(c + 1);
     if (name == "DTSTART" || name == "DTEND")
       stamp_key[name] = raw_key;
   }
-  if (out.items.empty() && out.title.empty() && text.find("BEGIN:VCALENDAR") == std::string::npos)
+  if (out.items.empty() && out.title.empty() &&
+      ascii_upper(text).find("BEGIN:VCALENDAR") == std::string::npos)
     out.error = "Not an iCalendar file";
   return out;
 }
