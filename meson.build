@@ -99,3 +99,14 @@ ephemeris_byday_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('byday', ephemeris_byday_tests)
+
+ephemeris_span_tests = executable(
+  'ephemeris-span-tests',
+  'tests/test_span.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('span', ephemeris_span_tests)

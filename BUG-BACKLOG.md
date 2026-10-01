@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`) and `tests/test_byday.cpp` (`byday`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, and a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), and `tests/test_span.cpp` (`span`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day.
 
 ## Open
-
-### A timed event that crosses midnight is shown as 30 minutes
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/ics.cpp:259`
-- Trigger: `DTSTART` at 22:00 and `DTEND` the next day at 01:00, or a `DURATION` the parser turns into a next-day end. The same for an end at the next day's 00:00.
-- Outcome: Duration is `end.mins - start.mins`. When that is not positive, `end_min` becomes `start_min + 30`. The event is drawn as half an hour.
 
 ### A multi-day all-day event appears only on the first day
 
@@ -143,6 +135,15 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Outcome: The test is `delta >= 0 && delta <= days`. That is today plus the seven days after it: eight dates.
 
 ## Closed
+
+### A timed event that crosses midnight is shown as 30 minutes
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/ics.cpp` `take_instance`, `expand`, `duration_minutes`
+- Trigger: `DTSTART` at 22:00 and `DTEND` the next day at 01:00, or a `DURATION` the parser turns into a next-day end. The same for an end at the next day's 00:00.
+- Outcome: Duration was `end.mins - start.mins`. When that was not positive, `end_min` became `start_min + 30`. The event was drawn as half an hour on the start day.
+- Fixed in v1.1.3: A timed span that ends on a later day is one instance drawn on each covered date. The first day runs from the start time to midnight, a middle day fills the day, and the last day runs from midnight to the end time. An end at 00:00 adds no empty next-day row. When `DTEND` is absent, `DURATION` sets the end. `DTEND` wins when both are present. All-day events are unchanged.
 
 ### Monthly and yearly rules ignore BYDAY
 
