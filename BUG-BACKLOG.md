@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), `tests/test_window.cpp` (`window`), `tests/test_weekly.cpp` (`weekly`), `tests/test_monthday.cpp` (`monthday`), `tests/test_params.cpp` (`params`), and `tests/test_case.cpp` (`casefold`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` and `COUNT=3` is 31 January, 31 March, and 31 May. February and 30 April are absent. `monthday` also checks a 30th, a 28th that does land in February, and a yearly 29 February. `calendar` mixes that 31st with a one-off on 2 February. `params` checks a `SUMMARY` with `LANGUAGE`, a folded parameterized summary, an `RRULE` with a parameter, a `STATUS` with a parameter, a `DURATION` with a parameter, and a `VALUE=DATE` stamp that also carries a time. `calendar` mixes a parameterized summary and a parameterized calendar name with a plain event. `casefold` checks a lower-case `BEGIN`/`SUMMARY`, a summary value that keeps its own case, a lower-case `RRULE`, `STATUS`, `DURATION`, and `VALUE=DATE`, and an empty `begin:vcalendar`. `calendar` also mixes that lower-case event with an upper-case one. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window. `weekly` checks `BYDAY=SU,TU` with `COUNT=1` and `COUNT=2` from a Tuesday, the same rule from a Sunday, and a repeated weekday token.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), `tests/test_window.cpp` (`window`), `tests/test_weekly.cpp` (`weekly`), `tests/test_monthday.cpp` (`monthday`), `tests/test_params.cpp` (`params`), and `tests/test_case.cpp` (`casefold`), and `tests/test_vcard.cpp` (`vcard`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` and `COUNT=3` is 31 January, 31 March, and 31 May. February and 30 April are absent. `monthday` also checks a 30th, a 28th that does land in February, and a yearly 29 February. `calendar` mixes that 31st with a one-off on 2 February. `params` checks a `SUMMARY` with `LANGUAGE`, a folded parameterized summary, an `RRULE` with a parameter, a `STATUS` with a parameter, a `DURATION` with a parameter, and a `VALUE=DATE` stamp that also carries a time. `calendar` mixes a parameterized summary and a parameterized calendar name with a plain event. `casefold` checks a lower-case `BEGIN`/`SUMMARY`, a summary value that keeps its own case, a lower-case `RRULE`, `STATUS`, `DURATION`, and `VALUE=DATE`, and an empty `begin:vcalendar`. `calendar` also mixes that lower-case event with an upper-case one. `vcard` checks a grouped `TEL` and `EMAIL`, a second phone that does not replace the first, a lower-case grouped name, a grouped `FN`, and a folded grouped phone. `calendar` mixes that grouped card with a plain card and reads both back after export. A card that has only a phone number is still discarded. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window. `weekly` checks `BYDAY=SU,TU` with `COUNT=1` and `COUNT=2` from a Tuesday, the same rule from a Sunday, and a repeated weekday token.
 
 ## Open
-
-### A grouped vCard property is dropped
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/vcard.cpp:59`
-- Trigger: `item1.TEL` or `A.EMAIL`, the grouping Apple and other exporters use.
-- Outcome: `prop_name` cuts at `;` and uppercases. It does not cut at `.`. The name stays `ITEM1.TEL` and does not match `TEL` or `EMAIL`. The phone or email is dropped.
 
 ### An escaped semicolon in N does not round-trip
 
@@ -87,6 +79,15 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Outcome: The test is `delta >= 0 && delta <= days`. That is today plus the seven days after it: eight dates.
 
 ## Closed
+
+### A grouped vCard property is dropped
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/vcard.cpp` `prop_name`
+- Trigger: `item1.TEL` or `A.EMAIL`, the grouping Apple and other exporters use.
+- Outcome: `prop_name` cut at `;` and uppercased. It did not cut at `.`. The name stayed `ITEM1.TEL` and did not match `TEL` or `EMAIL`. The phone or email was dropped.
+- Fixed in v1.1.10: The group prefix before the first `.` is removed before the name is matched. Parameters after `;` still apply. A card that has only a phone number is still discarded. An escaped semicolon in `N` still does not round-trip.
 
 ### Property names are matched case-sensitively
 
