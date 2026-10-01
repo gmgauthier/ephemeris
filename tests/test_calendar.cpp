@@ -398,5 +398,54 @@ int main()
     CHECK(!has_day(parsed, day(28, Glib::Date::FEBRUARY, 2026)));
   }
 
+  {
+    const char* text =
+        "BEGIN:VCALENDAR\n"
+        "X-WR-CALNAME;LANGUAGE=en:Desk\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260302T090000\n"
+        "DTEND:20260302T100000\n"
+        "SUMMARY;LANGUAGE=en:Meet\n"
+        "RRULE;X-NAME=keep:FREQ=DAILY;COUNT=2\n"
+        "END:VEVENT\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260302T150000\n"
+        "DTEND:20260302T160000\n"
+        "SUMMARY:Once\n"
+        "END:VEVENT\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260302T180000\n"
+        "DTEND:20260302T190000\n"
+        "SUMMARY;LANGUAGE=en:Gone\n"
+        "STATUS;LANGUAGE=en:CANCELLED\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n";
+    const auto parsed = ephemeris::parse_ics(text, from, to);
+    CHECK(parsed.error.empty());
+    CHECK(parsed.title == "Desk");
+    int meets = 0;
+    int onces = 0;
+    int gones = 0;
+    for (const auto& item : parsed.items) {
+      if (item.text == "Meet") {
+        ++meets;
+        CHECK(item.start_min == 9 * 60);
+        CHECK(item.end_min == 10 * 60);
+      } else if (item.text == "Once") {
+        ++onces;
+        CHECK(item.date.compare(day(2, Glib::Date::MARCH, 2026)) == 0);
+        CHECK(item.start_min == 15 * 60);
+        CHECK(item.end_min == 16 * 60);
+      } else if (item.text == "Gone") {
+        ++gones;
+      }
+    }
+    CHECK(meets == 2);
+    CHECK(onces == 1);
+    CHECK(gones == 0);
+    CHECK(has_day(parsed, day(2, Glib::Date::MARCH, 2026)));
+    CHECK(has_day(parsed, day(3, Glib::Date::MARCH, 2026)));
+  }
+
   return suite_test::done("calendar");
 }
