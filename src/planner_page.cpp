@@ -14,13 +14,51 @@ const char* kMonthName[] = {"",        "January",  "February", "March",  "April"
                             "May",     "June",     "July",     "August", "September",
                             "October", "November", "December"};
 
-int covering_id(const std::vector<PlannerEvent>& ev, const Glib::Date& d)
+bool covers_day(const PlannerEvent& e, const Glib::Date& day)
 {
-  for (const auto& e : ev) {
-    if (e.start.valid() && e.end.valid() && d.compare(e.start) >= 0 && d.compare(e.end) <= 0)
-      return e.id;
+  return day.valid() && e.start.valid() && e.end.valid() && day.compare(e.start) >= 0 &&
+         day.compare(e.end) <= 0;
+}
+
+Glib::ustring hit_label(const PlannerEvent& e)
+{
+  Glib::ustring line = e.text.empty() ? Glib::ustring("Event") : e.text;
+  if (e.start.valid()) {
+    line += "  ";
+    line += date_iso(e.start);
   }
-  return 0;
+  if (e.end.valid() && (!e.start.valid() || e.end.compare(e.start) != 0)) {
+    line += " – ";
+    line += date_iso(e.end);
+  }
+  return line;
+}
+
+int choose_hit(Gtk::Window& win, const std::vector<PlannerEvent>& covering)
+{
+  if (covering.empty())
+    return 0;
+  if (covering.size() == 1)
+    return covering.back().id;
+  Gtk::Dialog dlg("Open planner event", win, true);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  auto* box = dlg.get_content_area();
+  box->set_border_width(10);
+  box->set_spacing(6);
+  int chosen = 0;
+  for (auto it = covering.rbegin(); it != covering.rend(); ++it) {
+    const int id = it->id;
+    auto* b = Gtk::manage(new Gtk::Button(hit_label(*it)));
+    b->signal_clicked().connect([&dlg, &chosen, id]() {
+      chosen = id;
+      dlg.response(Gtk::RESPONSE_ACCEPT);
+    });
+    box->pack_start(*b, Gtk::PACK_SHRINK);
+  }
+  dlg.show_all();
+  dlg.run();
+  dlg.hide();
+  return chosen;
 }
 
 void order_dates(Glib::Date& a, Glib::Date& b)
@@ -71,6 +109,17 @@ Glib::Date date_from_spins(Gtk::SpinButton* y, Gtk::SpinButton* m, Gtk::SpinButt
 }
 
 }  // namespace
+
+std::vector<PlannerHit> planner_hits(const std::vector<PlannerEvent>& ev, const Glib::Date& day)
+{
+  std::vector<PlannerHit> out;
+  for (const auto& e : ev) {
+    if (!covers_day(e, day))
+      continue;
+    out.push_back(PlannerHit{e.id});
+  }
+  return out;
+}
 
 PlannerPage::PlannerPage()
     : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 6)
@@ -189,26 +238,25 @@ Gtk::Widget* PlannerPage::make_day(int month, int day)
 
   Glib::Date date(static_cast<Glib::Date::Day>(day), static_cast<Glib::Date::Month>(month), year_);
   cells_.push_back({ev, date});
-  int hit = 0;
-  if (binder_)
-    hit = covering_id(binder_->planner_on(date), date);
-  if (hit > 0) {
-    if (const PlannerEvent* p = binder_->find_planner(hit)) {
-      ev->get_style_context()->add_class("ephemeris-planner-hit");
-      ev->get_style_context()->add_class(
-          Glib::ustring::compose("ephemeris-planner-hit-%1", p->category).c_str());
+  if (binder_) {
+    const auto hits = planner_hits(binder_->planner_on(date), date);
+    if (!hits.empty()) {
+      if (const PlannerEvent* p = binder_->find_planner(hits.back().id)) {
+        ev->get_style_context()->add_class("ephemeris-planner-hit");
+        ev->get_style_context()->add_class(
+            Glib::ustring::compose("ephemeris-planner-hit-%1", p->category).c_str());
+      }
     }
   }
 
   ev->add_events(Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::BUTTON_MOTION_MASK);
-  ev->signal_button_press_event().connect([this, date, hit](GdkEventButton* e) {
+  ev->signal_button_press_event().connect([this, date](GdkEventButton* e) {
     if (!e || e->button != 1)
       return false;
     if (e->type == GDK_2BUTTON_PRESS) {
       dragging_ = false;
       sync_drag_style();
-      if (hit > 0)
-        edit_event(hit, false);
+      open_covering(date);
       return true;
     }
     dragging_ = true;
@@ -238,12 +286,9 @@ Gtk::Widget* PlannerPage::make_day(int month, int day)
     Glib::Date end = drag_end_.valid() ? drag_end_ : drag_start_;
     sync_drag_style();
     const bool same = start.valid() && end.valid() && start.compare(end) == 0;
-    if (same && binder_) {
-      const int exist = covering_id(binder_->planner_on(start), start);
-      if (exist > 0) {
-        edit_event(exist, false);
-        return true;
-      }
+    if (same && binder_ && !planner_hits(binder_->planner_on(start), start).empty()) {
+      open_covering(start);
+      return true;
     }
     paint_range(start, end);
     return true;
@@ -318,6 +363,32 @@ void PlannerPage::paint_range(const Glib::Date& a, const Glib::Date& b)
   const int id = binder_->add_planner(e);
   signal_changed_.emit();
   edit_event(id, true);
+}
+
+void PlannerPage::open_covering(const Glib::Date& date)
+{
+  if (!binder_ || !date.valid())
+    return;
+  const auto covering = binder_->planner_on(date);
+  const auto hits = planner_hits(covering, date);
+  if (hits.empty())
+    return;
+  int id = hits.back().id;
+  if (hits.size() > 1) {
+    auto* win = dynamic_cast<Gtk::Window*>(get_toplevel());
+    if (!win)
+      return;
+    std::vector<PlannerEvent> stacked;
+    stacked.reserve(hits.size());
+    for (const auto& hit : hits) {
+      if (const PlannerEvent* found = binder_->find_planner(hit.id))
+        stacked.push_back(*found);
+    }
+    id = choose_hit(*win, stacked);
+    if (id <= 0)
+      return;
+  }
+  edit_event(id, false);
 }
 
 void PlannerPage::edit_event(int id, bool created)

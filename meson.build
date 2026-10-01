@@ -246,3 +246,15 @@ ephemeris_grid_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('grid', ephemeris_grid_tests)
+
+ephemeris_planner_tests = executable(
+  'ephemeris-planner-tests',
+  'tests/test_planner.cpp',
+  'src/planner_page.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('planner', ephemeris_planner_tests)

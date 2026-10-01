@@ -34,6 +34,7 @@ class PlannerPage : public Gtk::Box {
  private:
   void rebuild();
   void paint_range(const Glib::Date& a, const Glib::Date& b);
+  void open_covering(const Glib::Date& date);
   void edit_event(int id, bool created);
   void rename_key(int index);
   Gtk::Widget* make_day(int month, int day);
@@ -58,5 +59,12 @@ class PlannerPage : public Gtk::Box {
   Gtk::Label hint_;
   sigc::signal<void> signal_changed_;
 };
+
+/* Covering planner events in insertion order. The last one is painted on top. */
+struct PlannerHit {
+  int id = 0;
+};
+
+std::vector<PlannerHit> planner_hits(const std::vector<PlannerEvent>& ev, const Glib::Date& day);
 
 }  // namespace ephemeris
