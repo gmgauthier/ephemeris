@@ -24,7 +24,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v1.1.5.** Unbounded daily events that started long before the window stay visible. Multi-day all-day events are drawn on each covered day. Timed events that cross midnight are drawn on each covered day. Monthly and yearly BYDAY, including ordinals. Outlook-class To Do fields and views; Notepad colour, categories, list views, and search. Headless test suite and BUG-BACKLOG.md. See [INSTALL.md](INSTALL.md).
+**v1.1.6.** Weekly BYDAY expands in weekday order. Unbounded daily events that started long before the window stay visible. Multi-day all-day events are drawn on each covered day. Timed events that cross midnight are drawn on each covered day. Monthly and yearly BYDAY, including ordinals. Outlook-class To Do fields and views; Notepad colour, categories, list views, and search. Headless test suite and BUG-BACKLOG.md. See [INSTALL.md](INSTALL.md).
 
 | Doc | What |
 |---|---|

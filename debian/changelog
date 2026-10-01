@@ -1,3 +1,10 @@
+ephemeris (1.1.6-1) unstable; urgency=medium
+
+  * Expand weekly BYDAY in weekday order, so COUNT consumes the
+    earlier day of the week.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 01 Oct 2026 20:07:08 +0100
+
 ephemeris (1.1.5-1) unstable; urgency=medium
 
   * Keep an unbounded daily event visible when it started long before
