@@ -116,6 +116,45 @@ int main()
   {
     const char* text =
         "BEGIN:VCALENDAR\n"
+        "X-WR-CALNAME:Desk\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260105T090000\n"
+        "DTEND:20260105T100000\n"
+        "SUMMARY:Board\n"
+        "RRULE:FREQ=MONTHLY;BYDAY=1MO;COUNT=3\n"
+        "END:VEVENT\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260106T150000\n"
+        "DTEND:20260106T160000\n"
+        "SUMMARY:Once\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n";
+    const auto parsed = ephemeris::parse_ics(text, from, to);
+    CHECK(parsed.error.empty());
+    CHECK(parsed.title == "Desk");
+    int boards = 0;
+    int onces = 0;
+    for (const auto& item : parsed.items) {
+      if (item.text == "Board") {
+        ++boards;
+        CHECK(item.start_min == 9 * 60);
+        CHECK(item.end_min == 10 * 60);
+      } else if (item.text == "Once") {
+        ++onces;
+        CHECK(has_day(parsed, day(6, Glib::Date::JANUARY, 2026)));
+        CHECK(item.start_min == 15 * 60);
+      }
+    }
+    CHECK(boards == 3);
+    CHECK(onces == 1);
+    CHECK(has_day(parsed, day(5, Glib::Date::JANUARY, 2026)));
+    CHECK(has_day(parsed, day(2, Glib::Date::FEBRUARY, 2026)));
+    CHECK(has_day(parsed, day(2, Glib::Date::MARCH, 2026)));
+  }
+
+  {
+    const char* text =
+        "BEGIN:VCALENDAR\n"
         "BEGIN:VEVENT\n"
         "DTSTART:20260901T120000Z\n"
         "SUMMARY:Folded\n"

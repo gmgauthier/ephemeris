@@ -57,18 +57,43 @@ int monday_index(Glib::Date::Weekday wd)
   return (n + 6) % 7;
 }
 
-int byday_index(const std::string& tok)
+/* nth == 0 means every weekday. A positive nth is from the start of the
+ * month or year, a negative nth from the end (RFC 5545 BYDAY). */
+struct ByDay {
+  int weekday = -1;
+  int nth = 0;
+};
+
+ByDay parse_byday(const std::string& tok)
 {
   static const char* names[] = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-  std::string t = tok;
-  while (!t.empty() &&
-         (t[0] == '+' || t[0] == '-' || std::isdigit(static_cast<unsigned char>(t[0]))))
-    t.erase(t.begin());
-  for (int i = 0; i < 7; ++i) {
-    if (t == names[i])
-      return i;
+  ByDay b;
+  size_t i = 0;
+  int sign = 1;
+  if (i < tok.size() && (tok[i] == '+' || tok[i] == '-')) {
+    if (tok[i] == '-')
+      sign = -1;
+    ++i;
   }
-  return -1;
+  int n = 0;
+  bool has_n = false;
+  while (i < tok.size() && std::isdigit(static_cast<unsigned char>(tok[i]))) {
+    has_n = true;
+    n = n * 10 + (tok[i] - '0');
+    ++i;
+  }
+  if (has_n && n > 0)
+    b.nth = sign * n;
+  std::string name = tok.substr(i);
+  for (char& ch : name)
+    ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+  for (int w = 0; w < 7; ++w) {
+    if (name == names[w]) {
+      b.weekday = w;
+      break;
+    }
+  }
+  return b;
 }
 
 struct Stamp {
@@ -179,7 +204,7 @@ struct RRule {
   int count = 0;
   bool has_until = false;
   Glib::Date until;
-  std::vector<int> byday;
+  std::vector<ByDay> byday;
 };
 
 RRule parse_rrule(const std::string& raw)
@@ -218,10 +243,10 @@ RRule parse_rrule(const std::string& raw)
         size_t q = 0;
         while (q < v.size()) {
           const size_t c = v.find(',', q);
-          const int idx =
-              byday_index(v.substr(q, c == std::string::npos ? std::string::npos : c - q));
-          if (idx >= 0)
-            r.byday.push_back(idx);
+          const ByDay bd =
+              parse_byday(v.substr(q, c == std::string::npos ? std::string::npos : c - q));
+          if (bd.weekday >= 0)
+            r.byday.push_back(bd);
           if (c == std::string::npos)
             break;
           q = c + 1;
@@ -233,6 +258,64 @@ RRule parse_rrule(const std::string& raw)
     p = semi + 1;
   }
   return r;
+}
+
+void append_nth(std::vector<Glib::Date>& out, const std::vector<Glib::Date>& hits, int nth)
+{
+  if (hits.empty())
+    return;
+  if (nth == 0) {
+    out.insert(out.end(), hits.begin(), hits.end());
+    return;
+  }
+  if (nth > 0) {
+    if (nth <= static_cast<int>(hits.size()))
+      out.push_back(hits[static_cast<size_t>(nth - 1)]);
+    return;
+  }
+  const int idx = static_cast<int>(hits.size()) + nth;
+  if (idx >= 0 && idx < static_cast<int>(hits.size()))
+    out.push_back(hits[static_cast<size_t>(idx)]);
+}
+
+std::vector<Glib::Date> weekdays_between(const Glib::Date& first, int span, int weekday)
+{
+  std::vector<Glib::Date> hits;
+  for (int i = 0; i < span; ++i) {
+    Glib::Date d = first;
+    d.add_days(i);
+    if (monday_index(d.get_weekday()) == weekday)
+      hits.push_back(d);
+  }
+  return hits;
+}
+
+std::vector<Glib::Date> dates_for_byday(const Glib::Date& first, int span,
+                                        const std::vector<ByDay>& rules)
+{
+  std::vector<Glib::Date> out;
+  for (const ByDay& bd : rules)
+    append_nth(out, weekdays_between(first, span, bd.weekday), bd.nth);
+  std::sort(out.begin(), out.end(),
+            [](const Glib::Date& a, const Glib::Date& b) { return a.compare(b) < 0; });
+  out.erase(std::unique(out.begin(), out.end(),
+                        [](const Glib::Date& a, const Glib::Date& b) { return a.compare(b) == 0; }),
+            out.end());
+  return out;
+}
+
+std::vector<Glib::Date> byday_in_month(const Glib::Date& month_day1,
+                                       const std::vector<ByDay>& rules)
+{
+  const int dim = Glib::Date::get_days_in_month(month_day1.get_month(), month_day1.get_year());
+  return dates_for_byday(month_day1, dim, rules);
+}
+
+std::vector<Glib::Date> byday_in_year(int year, const std::vector<ByDay>& rules)
+{
+  const Glib::Date jan(1, Glib::Date::JANUARY, static_cast<Glib::Date::Year>(year));
+  const int span = Glib::Date::is_leap_year(static_cast<Glib::Date::Year>(year)) ? 366 : 365;
+  return dates_for_byday(jan, span, rules);
 }
 
 /* COUNT counts every instance from DTSTART, including those outside [from,to]. */
@@ -287,7 +370,9 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
   }
 
   if (rule.freq == Freq::weekly) {
-    std::vector<int> days = rule.byday;
+    std::vector<int> days;
+    for (const ByDay& bd : rule.byday)
+      days.push_back(bd.weekday);
     if (days.empty())
       days.push_back(monday_index(start.date.get_weekday()));
     Glib::Date week0 = start.date;
@@ -310,6 +395,43 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
   }
 
   if (rule.freq == Freq::monthly || rule.freq == Freq::yearly) {
+    if (!rule.byday.empty()) {
+      const bool yearly = rule.freq == Freq::yearly;
+      for (int n = 0; n < 800 && emitted < cap; ++n) {
+        std::vector<Glib::Date> dates;
+        if (yearly) {
+          const int year = start.date.get_year() + n * interval;
+          dates = byday_in_year(year, rule.byday);
+          Glib::Date jan(1, Glib::Date::JANUARY, static_cast<Glib::Date::Year>(year));
+          if (jan.compare(to) > 0)
+            break;
+        } else {
+          Glib::Date origin(1, start.date.get_month(), start.date.get_year());
+          origin.add_months(n * interval);
+          if (origin.compare(to) > 0)
+            break;
+          dates = byday_in_month(origin, rule.byday);
+        }
+        bool stop = false;
+        for (const Glib::Date& d : dates) {
+          if (d.compare(start.date) < 0)
+            continue;
+          if (d.compare(to) > 0) {
+            stop = true;
+            break;
+          }
+          if (!take_instance(out, base, d, from, to, emitted, rule.count, rule.has_until,
+                             rule.until)) {
+            stop = true;
+            break;
+          }
+        }
+        if (stop)
+          break;
+      }
+      return;
+    }
+
     const int step = rule.freq == Freq::yearly ? 12 * interval : interval;
     const int want_day = start.date.get_day();
     Glib::Date origin(1, start.date.get_month(), start.date.get_year());
