@@ -77,3 +77,14 @@ install_data(
   rename: 'ephemeris.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
 )
+
+ephemeris_tests = executable(
+  'ephemeris-tests',
+  'tests/test_calendar.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('calendar', ephemeris_tests)
