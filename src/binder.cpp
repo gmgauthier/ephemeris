@@ -431,10 +431,15 @@ bool date_from_iso(const std::string& s, Glib::Date& out)
   int y = 0, m = 0, d = 0;
   if (std::sscanf(s.c_str(), "%d-%d-%d", &y, &m, &d) != 3)
     return false;
-  if (m < 1 || m > 12 || d < 1 || d > 31)
+  if (y < 1 || y > 9999 || m < 1 || m > 12 || d < 1 || d > 31)
     return false;
-  out.set_dmy(static_cast<Glib::Date::Day>(d), static_cast<Glib::Date::Month>(m),
-              static_cast<Glib::Date::Year>(y));
+  const auto day = static_cast<Glib::Date::Day>(d);
+  const auto month = static_cast<Glib::Date::Month>(m);
+  const auto year = static_cast<Glib::Date::Year>(y);
+  // set_dmy of an impossible day leaves the previous date and logs a critical.
+  if (!Glib::Date::valid_dmy(day, month, year))
+    return false;
+  out.set_dmy(day, month, year);
   return out.valid();
 }
 
