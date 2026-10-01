@@ -111,7 +111,8 @@ std::vector<Contact> parse_vcf(const std::string& text)
       continue;
     }
     if (line == "END:VCARD") {
-      if (in_card && (!cur.first.empty() || !cur.last.empty() || !cur.email.empty()))
+      if (in_card &&
+          (!cur.first.empty() || !cur.last.empty() || !cur.email.empty() || !cur.phone.empty()))
         out.push_back(cur);
       in_card = false;
       continue;
