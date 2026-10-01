@@ -228,6 +228,25 @@ int main()
   }
 
   {
+    ephemeris::Contact junior;
+    junior.last = "Smith; Jr";
+    junior.first = "Greg";
+    junior.email = "greg@example.com";
+    ephemeris::Contact plain;
+    plain.last = "Plain";
+    plain.first = "Pat";
+    plain.phone = "555";
+    const auto again = ephemeris::parse_vcf(ephemeris::contacts_to_vcf({junior, plain}));
+    CHECK(again.size() == 2);
+    CHECK(again[0].last == "Smith; Jr");
+    CHECK(again[0].first == "Greg");
+    CHECK(again[0].email == "greg@example.com");
+    CHECK(again[1].last == "Plain");
+    CHECK(again[1].first == "Pat");
+    CHECK(again[1].phone == "555");
+  }
+
+  {
     const char* text =
         "BEGIN:VCALENDAR\n"
         "X-WR-CALNAME:Desk\n"

@@ -71,6 +71,28 @@ std::string prop_name(const std::string& key)
   return n;
 }
 
+/* Split on ';' that is not escaped. Pieces stay escaped for unescape(). */
+std::vector<std::string> split_escaped(const std::string& raw)
+{
+  std::vector<std::string> fields;
+  std::string cur;
+  for (size_t i = 0; i < raw.size(); ++i) {
+    if (raw[i] == '\\' && i + 1 < raw.size()) {
+      cur += raw[i];
+      cur += raw[++i];
+      continue;
+    }
+    if (raw[i] == ';') {
+      fields.push_back(cur);
+      cur.clear();
+      continue;
+    }
+    cur += raw[i];
+  }
+  fields.push_back(cur);
+  return fields;
+}
+
 }  // namespace
 
 std::vector<Contact> parse_vcf(const std::string& text)
@@ -100,22 +122,21 @@ std::vector<Contact> parse_vcf(const std::string& text)
     if (c == std::string::npos)
       continue;
     const std::string name = prop_name(line.substr(0, c));
-    const std::string val = unescape(line.substr(c + 1));
+    const std::string raw_val = line.substr(c + 1);
     if (name == "N") {
-      const auto sc = val.find(';');
-      cur.last = sc == std::string::npos ? val : val.substr(0, sc);
-      if (sc != std::string::npos) {
-        const auto sc2 = val.find(';', sc + 1);
-        cur.first = val.substr(sc + 1, sc2 == std::string::npos ? std::string::npos : sc2 - sc - 1);
-      }
+      const auto fields = split_escaped(raw_val);
+      if (!fields.empty())
+        cur.last = unescape(fields[0]);
+      if (fields.size() > 1)
+        cur.first = unescape(fields[1]);
     } else if (name == "FN" && cur.first.empty() && cur.last.empty()) {
-      cur.first = val;
+      cur.first = unescape(raw_val);
     } else if (name == "TEL" && cur.phone.empty())
-      cur.phone = val;
+      cur.phone = unescape(raw_val);
     else if (name == "EMAIL" && cur.email.empty())
-      cur.email = val;
+      cur.email = unescape(raw_val);
     else if (name == "NOTE" && cur.notes.empty())
-      cur.notes = val;
+      cur.notes = unescape(raw_val);
   }
   return out;
 }
