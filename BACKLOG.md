@@ -1,6 +1,6 @@
 # Ephemeris backlog
 
-Current release: **v1.1.16**. Last updated: 2026-10-01.
+Current release: **v1.1.17**. Last updated: 2026-10-02.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -27,6 +27,8 @@ None.
 - Bryan’s seal
 
 ## Shipped
+
+**v1.1.17** — Each appointment on the day grid opens from the slot where it starts. Two appointments in one half hour each have a row.
 
 **v1.1.16** — A refresh that is not a calendar leaves the saved calendar in place. A real calendar still replaces it.
 
