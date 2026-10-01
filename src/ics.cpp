@@ -592,6 +592,13 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
   }
 }
 
+/* Name before ';' parameters. Case is left as written. */
+std::string property_name(const std::string& key)
+{
+  const auto sc = key.find(';');
+  return sc == std::string::npos ? key : key.substr(0, sc);
+}
+
 }  // namespace
 
 ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib::Date& to)
@@ -601,6 +608,7 @@ ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib:
   std::istringstream in(body);
   std::string line;
   std::map<std::string, std::string> ev;
+  std::map<std::string, std::string> stamp_key;
   bool in_event = false;
   while (std::getline(in, line)) {
     if (!line.empty() && line.back() == '\r')
@@ -613,6 +621,7 @@ ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib:
     }
     if (line == "BEGIN:VEVENT") {
       ev.clear();
+      stamp_key.clear();
       in_event = true;
       continue;
     }
@@ -622,11 +631,15 @@ ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib:
       if (st != ev.end() && st->second == "CANCELLED")
         continue;
       Stamp start, end;
-      for (const auto& kv : ev) {
-        if (kv.first.compare(0, 7, "DTSTART") == 0)
-          start = parse_stamp(kv.first, kv.second);
-        else if (kv.first.compare(0, 5, "DTEND") == 0)
-          end = parse_stamp(kv.first, kv.second);
+      const auto st_it = ev.find("DTSTART");
+      if (st_it != ev.end()) {
+        const auto key = stamp_key.find("DTSTART");
+        start = parse_stamp(key != stamp_key.end() ? key->second : st_it->first, st_it->second);
+      }
+      const auto en_it = ev.find("DTEND");
+      if (en_it != ev.end()) {
+        const auto key = stamp_key.find("DTEND");
+        end = parse_stamp(key != stamp_key.end() ? key->second : en_it->first, en_it->second);
       }
       if (!end.ok && start.ok && !start.all_day) {
         const auto dur = ev.find("DURATION");
@@ -658,7 +671,13 @@ ParsedIcs parse_ics(const std::string& text, const Glib::Date& from, const Glib:
     const auto c = line.find(':');
     if (c == std::string::npos)
       continue;
-    ev[line.substr(0, c)] = line.substr(c + 1);
+    const std::string raw_key = line.substr(0, c);
+    const std::string name = property_name(raw_key);
+    if (name.empty())
+      continue;
+    ev[name] = line.substr(c + 1);
+    if (name == "DTSTART" || name == "DTEND")
+      stamp_key[name] = raw_key;
   }
   if (out.items.empty() && out.title.empty() && text.find("BEGIN:VCALENDAR") == std::string::npos)
     out.error = "Not an iCalendar file";
