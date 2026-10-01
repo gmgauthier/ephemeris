@@ -107,10 +107,12 @@ int main()
         "END:VEVENT\n"
         "END:VCALENDAR\n";
     const auto parsed = ephemeris::parse_ics(text, from, to);
-    /* January 31 and March 31 only. A February instance is not required. */
-    CHECK(parsed.items.size() >= 2);
+    CHECK(parsed.items.size() == 3);
     CHECK(has_day(parsed, day(31, Glib::Date::JANUARY, 2026)));
     CHECK(has_day(parsed, day(31, Glib::Date::MARCH, 2026)));
+    CHECK(has_day(parsed, day(31, Glib::Date::MAY, 2026)));
+    CHECK(!has_day(parsed, day(28, Glib::Date::FEBRUARY, 2026)));
+    CHECK(!has_day(parsed, day(30, Glib::Date::APRIL, 2026)));
   }
 
   {
@@ -351,6 +353,49 @@ int main()
     }
     CHECK(shifts == 1);
     CHECK(onces == 1);
+  }
+
+  {
+    const char* text =
+        "BEGIN:VCALENDAR\n"
+        "X-WR-CALNAME:Desk\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260131T090000\n"
+        "DTEND:20260131T100000\n"
+        "SUMMARY:Pay\n"
+        "RRULE:FREQ=MONTHLY;COUNT=3\n"
+        "END:VEVENT\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260202T150000\n"
+        "DTEND:20260202T160000\n"
+        "SUMMARY:Once\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n";
+    const auto parsed = ephemeris::parse_ics(text, from, to);
+    CHECK(parsed.error.empty());
+    CHECK(parsed.title == "Desk");
+    int pays = 0;
+    int onces = 0;
+    for (const auto& item : parsed.items) {
+      if (item.text == "Pay") {
+        ++pays;
+        CHECK(item.start_min == 9 * 60);
+        CHECK(item.end_min == 10 * 60);
+        CHECK(item.date.get_day() == 31);
+        CHECK(item.date.get_month() != Glib::Date::FEBRUARY);
+      } else if (item.text == "Once") {
+        ++onces;
+        CHECK(item.date.compare(day(2, Glib::Date::FEBRUARY, 2026)) == 0);
+        CHECK(item.start_min == 15 * 60);
+        CHECK(item.end_min == 16 * 60);
+      }
+    }
+    CHECK(pays == 3);
+    CHECK(onces == 1);
+    CHECK(has_day(parsed, day(31, Glib::Date::JANUARY, 2026)));
+    CHECK(has_day(parsed, day(31, Glib::Date::MARCH, 2026)));
+    CHECK(has_day(parsed, day(31, Glib::Date::MAY, 2026)));
+    CHECK(!has_day(parsed, day(28, Glib::Date::FEBRUARY, 2026)));
   }
 
   return suite_test::done("calendar");
