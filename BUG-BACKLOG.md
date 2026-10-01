@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), and `tests/test_allday.cpp` (`allday`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), and `tests/test_window.cpp` (`window`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window.
 
 ## Open
-
-### A long-running daily event can vanish from the visible window
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/ics.cpp:239`, `src/ics.cpp:275`
-- Trigger: A daily rule with no `COUNT` and no `UNTIL`, whose `DTSTART` is years before the ±24 month window.
-- Outcome: The cap is 800 instances counted from `DTSTART`. `take_instance` increments `emitted` even when the day is outside the window. Those 800 can be spent before the window starts, and the event does not appear.
 
 ### Weekly BYDAY is walked in list order, and the first miss ends the rule
 
@@ -127,6 +119,15 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Outcome: The test is `delta >= 0 && delta <= days`. That is today plus the seven days after it: eight dates.
 
 ## Closed
+
+### A long-running daily event can vanish from the visible window
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/ics.cpp` `take_instance`, daily loop in `expand`
+- Trigger: A daily rule with no `COUNT` and no `UNTIL`, whose `DTSTART` is years before the ±24 month window.
+- Outcome: The cap was 800 instances counted from `DTSTART`. `take_instance` incremented `emitted` even when the day was outside the window. Those 800 could be spent before the window started, and the event did not appear.
+- Fixed in v1.1.5: The safety cap counts an instance only when a slice falls in the window. `COUNT` still counts from `DTSTART`, including days the window does not show. An unbounded daily rule keeps its interval and skips ahead to the window, including a span that starts the day before. Weekly and monthly rules share the cap change. Their own loop bounds are unchanged.
 
 ### A multi-day all-day event appears only on the first day
 
