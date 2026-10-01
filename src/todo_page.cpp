@@ -184,17 +184,11 @@ TodoDlg run_todo_dialog(Gtk::Window& parent, Todo& t, bool existing, Binder* bin
   t.status = parse_status(status->get_active_id().raw());
   t.percent = pct->get_value_as_int();
   t.category = combo_text(*cat);
-  t.has_start = start_on->get_active();
-  if (t.has_start && !date_from_iso(start->get_text().raw(), t.start))
-    t.has_start = false;
-  t.has_due = due_on->get_active();
-  if (t.has_due && !date_from_iso(due->get_text().raw(), t.due))
-    t.has_due = false;
+  t.has_start = apply_iso_date(start_on->get_active(), start->get_text().raw(), t.start);
+  t.has_due = apply_iso_date(due_on->get_active(), due->get_text().raw(), t.due);
   t.recur = parse_recur(recur->get_active_id().raw());
   t.recur_interval = std::max(1, interval->get_value_as_int());
-  t.has_until = until_on->get_active();
-  if (t.has_until && !date_from_iso(until->get_text().raw(), t.until))
-    t.has_until = false;
+  t.has_until = apply_iso_date(until_on->get_active(), until->get_text().raw(), t.until);
   t.notes = notes->get_buffer()->get_text();
   t.done = t.status == TodoStatus::completed || t.percent >= 100;
   return TodoDlg::ok;

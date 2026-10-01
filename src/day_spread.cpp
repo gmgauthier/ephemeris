@@ -387,11 +387,7 @@ void DaySpread::edit_slot(const Glib::Date& date, int start_min, int appt_id)
     edited.end_min = edited.start_min + kStep;
   edited.recur = parse_recur(recur->get_active_id().raw());
   edited.recur_interval = std::max(1, interval->get_value_as_int());
-  edited.has_until = until_on->get_active();
-  if (edited.has_until) {
-    if (!date_from_iso(until->get_text().raw(), edited.until))
-      edited.has_until = false;
-  }
+  edited.has_until = apply_iso_date(until_on->get_active(), until->get_text().raw(), edited.until);
   if (existing)
     binder_->update_appointment(edited);
   else

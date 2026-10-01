@@ -181,6 +181,7 @@ Glib::ustring format_hm(int mins);
 int parse_hm(const Glib::ustring& s);
 std::string date_iso(const Glib::Date& d);
 bool date_from_iso(const std::string& s, Glib::Date& out);
+bool apply_iso_date(bool enabled, const std::string& text, Glib::Date& date);
 const char* recur_attr(Recur r);
 Recur parse_recur(const std::string& s);
 const char* status_attr(TodoStatus s);
