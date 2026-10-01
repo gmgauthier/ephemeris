@@ -121,3 +121,14 @@ ephemeris_allday_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('allday', ephemeris_allday_tests)
+
+ephemeris_window_tests = executable(
+  'ephemeris-window-tests',
+  'tests/test_window.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('window', ephemeris_window_tests)

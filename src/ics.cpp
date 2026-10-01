@@ -399,17 +399,18 @@ std::vector<Glib::Date> byday_in_year(int year, const std::vector<ByDay>& rules)
 }
 
 /* COUNT counts every instance from DTSTART, including those outside [from,to].
- * day_span > 0 means the event covers later days. For a timed event, proto.start_min
- * is the first day's clock time and proto.end_min is the clock time on the last day.
- * For an all-day event both ends are the full day. Each slice is drawn on its own
- * date. The whole span still counts as one instance. */
+ * The safety cap (count == 0) counts only an instance that places a slice in the
+ * window. day_span > 0 means the event covers later days. For a timed event,
+ * proto.start_min is the first day's clock time and proto.end_min is the clock
+ * time on the last day. For an all-day event both ends are the full day. Each
+ * slice is drawn on its own date. The whole span still counts as one instance. */
 bool take_instance(std::vector<Appointment>& out, const Appointment& proto, const Glib::Date& d,
                    const Glib::Date& from, const Glib::Date& to, int& emitted, int count,
                    bool has_until, const Glib::Date& until, int day_span)
 {
   if (has_until && d.compare(until) > 0)
     return false;
-  ++emitted;
+  bool placed = false;
   auto push_day = [&](const Glib::Date& day, int start_min, int end_min) {
     if (end_min <= start_min)
       return;
@@ -420,6 +421,7 @@ bool take_instance(std::vector<Appointment>& out, const Appointment& proto, cons
     a.start_min = start_min;
     a.end_min = end_min;
     out.push_back(std::move(a));
+    placed = true;
   };
   if (day_span <= 0) {
     if (d.compare(from) >= 0 && d.compare(to) <= 0)
@@ -436,6 +438,10 @@ bool take_instance(std::vector<Appointment>& out, const Appointment& proto, cons
         push_day(day, 0, 24 * 60);
     }
   }
+  if (count > 0)
+    ++emitted;
+  else if (placed)
+    ++emitted;
   if (count > 0 && emitted >= count)
     return false;
   return true;
@@ -473,6 +479,16 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
 
   if (rule.freq == Freq::daily) {
     Glib::Date d = start.date;
+    /* Keep the interval. A span that begins just before the window still shows. */
+    if (rule.count == 0 && d.compare(from) < 0) {
+      const int delta = static_cast<int>(from.get_julian()) - static_cast<int>(d.get_julian());
+      int back = day_span > 0 ? day_span : 0;
+      if (back > delta)
+        back = delta;
+      const int steps = (delta - back) / interval;
+      if (steps > 0)
+        d.add_days(steps * interval);
+    }
     while (emitted < cap) {
       if (d.compare(to) > 0)
         break;
