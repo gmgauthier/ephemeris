@@ -232,3 +232,17 @@ ephemeris_cache_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('cache', ephemeris_cache_tests)
+
+ephemeris_grid_tests = executable(
+  'ephemeris-grid-tests',
+  'tests/test_grid.cpp',
+  'src/day_spread.cpp',
+  'src/mention.cpp',
+  'src/remote_cal.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('grid', ephemeris_grid_tests)

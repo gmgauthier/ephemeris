@@ -22,18 +22,34 @@ bool in_grid(const Appointment& a)
   return !all_day(a) && a.start_min >= kDayStart && a.start_min < kDayEnd;
 }
 
-const Appointment* covering(const std::vector<Appointment>& list, int mins)
-{
-  for (const auto& a : list) {
-    if (all_day(a) || !in_grid(a))
-      continue;
-    if (mins >= a.start_min && mins < a.end_min)
-      return &a;
-  }
-  return nullptr;
-}
-
 }  // namespace
+
+std::vector<GridRow> day_grid_rows(const std::vector<Appointment>& items)
+{
+  std::vector<GridRow> rows;
+  for (int m = kDayStart; m < kDayEnd; m += kStep) {
+    std::vector<int> starters;
+    int cont = -1;
+    for (int i = 0; i < static_cast<int>(items.size()); ++i) {
+      const Appointment& a = items[static_cast<size_t>(i)];
+      if (all_day(a) || !in_grid(a))
+        continue;
+      if (a.start_min >= m && a.start_min < m + kStep) {
+        starters.push_back(i);
+        continue;
+      }
+      if (cont < 0 && m >= a.start_min && m < a.end_min)
+        cont = i;
+    }
+    if (starters.empty()) {
+      rows.push_back(GridRow{m, cont});
+      continue;
+    }
+    for (int idx : starters)
+      rows.push_back(GridRow{m, idx});
+  }
+  return rows;
+}
 
 DaySpread::DaySpread()
     : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)
@@ -140,13 +156,16 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
     list->pack_start(*ev, Gtk::PACK_SHRINK);
   }
 
-  for (int m = kDayStart; m < kDayEnd; m += kStep) {
-    const Appointment* hit = covering(items, m);
+  const std::vector<GridRow> rows = day_grid_rows(items);
+  for (const GridRow& row : rows) {
+    const Appointment* hit = row.index >= 0 ? &items[static_cast<size_t>(row.index)] : nullptr;
+    const bool starts =
+        hit && hit->start_min >= row.slot_min && hit->start_min < row.slot_min + kStep;
     auto* ev = Gtk::manage(new Gtk::EventBox());
     ev->set_visible_window(true);
     ev->get_style_context()->add_class("ephemeris-slot");
-    Glib::ustring label = format_hm(m);
-    if (hit && hit->start_min == m) {
+    Glib::ustring label = format_hm(starts ? hit->start_min : row.slot_min);
+    if (starts) {
       ev->get_style_context()->add_class(hit->remote ? "ephemeris-slot-remote"
                                                      : "ephemeris-slot-busy");
       label += "  ";
@@ -162,8 +181,8 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
     lab->set_ellipsize(Pango::ELLIPSIZE_END);
     ev->add(*lab);
     const Glib::Date d = date;
-    const int start = m;
-    const int id = hit ? hit->id : 0;
+    const int start = hit ? hit->start_min : row.slot_min;
+    const int id = hit && !hit->remote ? hit->id : 0;
     const bool is_remote = hit && hit->remote;
     Appointment remote_copy;
     if (is_remote)
