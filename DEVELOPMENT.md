@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-10-01)
 
-**v1.1.3.** Timed events that cross midnight. Monthly and yearly BYDAY. Outlook-class To Do and Notepad. Headless test suite and BUG-BACKLOG.md. Tags through `v1.1.3`.
+**v1.1.4.** Multi-day all-day events. Timed events that cross midnight. Monthly and yearly BYDAY. Outlook-class To Do and Notepad. Headless test suite and BUG-BACKLOG.md. Tags through `v1.1.4`.
 
 ## 1. Locked decisions
 
