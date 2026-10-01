@@ -443,6 +443,16 @@ bool date_from_iso(const std::string& s, Glib::Date& out)
   return out.valid();
 }
 
+bool apply_iso_date(bool enabled, const std::string& text, Glib::Date& date)
+{
+  if (!enabled)
+    return false;
+  if (date_from_iso(text, date))
+    return true;
+  // Unparseable text leaves a previous valid date in place.
+  return date.valid();
+}
+
 Glib::ustring Contact::display_name() const
 {
   if (!first.empty() && !last.empty())

@@ -209,3 +209,14 @@ ephemeris_date_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('date', ephemeris_date_tests)
+
+ephemeris_keepdate_tests = executable(
+  'ephemeris-keepdate-tests',
+  'tests/test_keepdate.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('keepdate', ephemeris_keepdate_tests)
