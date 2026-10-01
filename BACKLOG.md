@@ -1,6 +1,6 @@
 # Ephemeris backlog
 
-Current release: **v1.1.14**. Last updated: 2026-10-01.
+Current release: **v1.1.15**. Last updated: 2026-10-01.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -27,6 +27,8 @@ None.
 - Bryan’s seal
 
 ## Shipped
+
+**v1.1.15** — Text that does not parse leaves the previous start, due, or until in place. Turning the checkbox off still clears that field.
 
 **v1.1.14** — A day the month does not have is rejected. 31 February does not replace the previous date.
 
