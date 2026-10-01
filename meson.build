@@ -198,3 +198,14 @@ ephemeris_recur_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('recur', ephemeris_recur_tests)
+
+ephemeris_date_tests = executable(
+  'ephemeris-date-tests',
+  'tests/test_date.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('date', ephemeris_date_tests)
