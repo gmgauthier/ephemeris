@@ -506,6 +506,10 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
       days.push_back(bd.weekday);
     if (days.empty())
       days.push_back(monday_index(start.date.get_weekday()));
+    /* Walk the week in weekday order. List order would let a later day consume
+     * COUNT, and the return below would then skip the earlier day. */
+    std::sort(days.begin(), days.end());
+    days.erase(std::unique(days.begin(), days.end()), days.end());
     Glib::Date week0 = start.date;
     week0.subtract_days(monday_index(week0.get_weekday()));
     for (int w = 0; w < 4000 && emitted < cap; w += interval) {

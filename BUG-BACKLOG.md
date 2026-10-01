@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), and `tests/test_window.cpp` (`window`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), `tests/test_window.cpp` (`window`), and `tests/test_weekly.cpp` (`weekly`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window. `weekly` checks `BYDAY=SU,TU` with `COUNT=1` and `COUNT=2` from a Tuesday, the same rule from a Sunday, and a repeated weekday token.
 
 ## Open
-
-### Weekly BYDAY is walked in list order, and the first miss ends the rule
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/ics.cpp:300`
-- Trigger: `DTSTART` on a Tuesday, `RRULE:FREQ=WEEKLY;BYDAY=SU,TU;COUNT=1`.
-- Outcome: The week is walked in the order the list is written. Sunday of that week is after Tuesday, so it is emitted first and consumes `COUNT`. `take_instance` returning false leaves `expand` entirely (`return`, not `continue`). The Tuesday, which is earlier in the same week and is the start date, is never emitted. `BYDAY=MO,WE` in weekday order does not hit this.
 
 ### A monthly or yearly 31st is clamped to the last day of the short month
 
@@ -119,6 +111,15 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Outcome: The test is `delta >= 0 && delta <= days`. That is today plus the seven days after it: eight dates.
 
 ## Closed
+
+### Weekly BYDAY is walked in list order, and the first miss ends the rule
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/ics.cpp` weekly loop in `expand`
+- Trigger: `DTSTART` on a Tuesday, `RRULE:FREQ=WEEKLY;BYDAY=SU,TU;COUNT=1`.
+- Outcome: The week was walked in the order the list was written. Sunday of that week is after Tuesday, so it was emitted first and consumed `COUNT`. `take_instance` returning false left `expand` entirely. The Tuesday, which is earlier in the same week and is the start date, was never emitted.
+- Fixed in v1.1.6: The week's weekdays are sorted Monday through Sunday before expansion, and a repeated token is kept once. `COUNT` therefore consumes dates in calendar order. A list that was already in weekday order is unchanged.
 
 ### A long-running daily event can vanish from the visible window
 
