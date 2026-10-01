@@ -56,10 +56,14 @@ std::string escape(const Glib::ustring& in)
   return out;
 }
 
+/* Group is an optional prefix before the first '.'. Parameters follow ';'. */
 std::string prop_name(const std::string& key)
 {
   const auto sc = key.find(';');
   std::string n = sc == std::string::npos ? key : key.substr(0, sc);
+  const auto dot = n.find('.');
+  if (dot != std::string::npos)
+    n = n.substr(dot + 1);
   for (char& c : n) {
     if (c >= 'a' && c <= 'z')
       c = static_cast<char>(c - 'a' + 'A');

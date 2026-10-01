@@ -176,3 +176,14 @@ ephemeris_case_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('casefold', ephemeris_case_tests)
+
+ephemeris_vcard_tests = executable(
+  'ephemeris-vcard-tests',
+  'tests/test_vcard.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('vcard', ephemeris_vcard_tests)
