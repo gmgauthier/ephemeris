@@ -574,8 +574,13 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
     for (int n = 0; n < 800 && emitted < cap; ++n) {
       Glib::Date cur = origin;
       cur.add_months(n * step);
+      if (cur.compare(to) > 0)
+        break;
       const int dim = Glib::Date::get_days_in_month(cur.get_month(), cur.get_year());
-      cur.set_day(static_cast<Glib::Date::Day>(want_day > dim ? dim : want_day));
+      /* RFC 5545: a month with no such day is skipped, not clamped. */
+      if (want_day > dim)
+        continue;
+      cur.set_day(static_cast<Glib::Date::Day>(want_day));
       if (cur.compare(start.date) < 0)
         continue;
       if (cur.compare(to) > 0)

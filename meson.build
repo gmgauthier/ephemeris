@@ -143,3 +143,14 @@ ephemeris_weekly_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('weekly', ephemeris_weekly_tests)
+
+ephemeris_monthday_tests = executable(
+  'ephemeris-monthday-tests',
+  'tests/test_monthday.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('monthday', ephemeris_monthday_tests)

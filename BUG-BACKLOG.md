@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), `tests/test_window.cpp` (`window`), and `tests/test_weekly.cpp` (`weekly`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window. `weekly` checks `BYDAY=SU,TU` with `COUNT=1` and `COUNT=2` from a Tuesday, the same rule from a Sunday, and a repeated weekday token.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), `tests/test_window.cpp` (`window`), `tests/test_weekly.cpp` (`weekly`), and `tests/test_monthday.cpp` (`monthday`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` and `COUNT=3` is 31 January, 31 March, and 31 May. February and 30 April are absent. `monthday` also checks a 30th, a 28th that does land in February, and a yearly 29 February. `calendar` mixes that 31st with a one-off on 2 February. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window. `weekly` checks `BYDAY=SU,TU` with `COUNT=1` and `COUNT=2` from a Tuesday, the same rule from a Sunday, and a repeated weekday token.
 
 ## Open
-
-### A monthly or yearly 31st is clamped to the last day of the short month
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/ics.cpp:319`
-- Trigger: `DTSTART` on 31 January, `FREQ=MONTHLY`.
-- Outcome: If the wanted day is past the length of the month, the instance is placed on the last day (`want_day > dim ? dim : want_day`). February becomes the 28th (or the 29th in a leap year) instead of being skipped. March is still the 31st, because each month is clamped on its own. Completing a to-do uses a different path and then stays on the clamped day. See below.
 
 ### A SUMMARY with parameters has a blank title
 
@@ -111,6 +103,15 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Outcome: The test is `delta >= 0 && delta <= days`. That is today plus the seven days after it: eight dates.
 
 ## Closed
+
+### A monthly or yearly 31st is clamped to the last day of the short month
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/ics.cpp` monthly and yearly loop in `expand`
+- Trigger: `DTSTART` on 31 January, `FREQ=MONTHLY`. The same clamp hit a yearly 29 February in a non-leap year.
+- Outcome: If the wanted day was past the length of the month, the instance was placed on the last day. February became the 28th (or the 29th in a leap year) instead of being skipped. March was still the 31st, because each month was clamped on its own.
+- Fixed in v1.1.7: A month that has no such day is skipped and does not consume `COUNT`. 31 January monthly is 31 January, 31 March, 31 May. A 28th still lands in February. A yearly 29 February keeps leap years only. Completing a to-do still uses its own date arithmetic.
 
 ### Weekly BYDAY is walked in list order, and the first miss ends the rule
 
