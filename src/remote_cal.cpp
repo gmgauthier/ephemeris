@@ -24,6 +24,20 @@ std::string cache_dir()
   return dir;
 }
 
+std::string ascii_upper(std::string s)
+{
+  for (char& c : s) {
+    if (c >= 'a' && c <= 'z')
+      c = static_cast<char>(c - 'a' + 'A');
+  }
+  return s;
+}
+
+bool has_calendar_marker(const std::string& ics)
+{
+  return ascii_upper(ics).find("BEGIN:VCALENDAR") != std::string::npos;
+}
+
 }  // namespace
 
 std::string calendar_cache_path(const std::string& url)
@@ -82,6 +96,18 @@ void RemoteCalendars::load_caches()
 
 bool RemoteCalendars::apply_ics(const std::string& url, const std::string& ics)
 {
+  // A refresh that is not a calendar must not replace a previously good cache.
+  if (!has_calendar_marker(ics)) {
+    expand_all();
+    return false;
+  }
+  Glib::Date from, to;
+  window(from, to);
+  ParsedIcs parsed = parse_ics(ics, from, to);
+  if (!parsed.error.empty()) {
+    expand_all();
+    return false;
+  }
   const std::string path = calendar_cache_path(url);
   const std::string tmp = path + ".tmp";
   {
@@ -97,9 +123,6 @@ bool RemoteCalendars::apply_ics(const std::string& url, const std::string& ics)
     ::unlink(tmp.c_str());
     return false;
   }
-  Glib::Date from, to;
-  window(from, to);
-  ParsedIcs parsed = parse_ics(ics, from, to);
   for (auto& sub : subs_) {
     if (sub.url == url) {
       if (!parsed.title.empty())
@@ -108,7 +131,7 @@ bool RemoteCalendars::apply_ics(const std::string& url, const std::string& ics)
     }
   }
   expand_all();
-  return parsed.error.empty();
+  return true;
 }
 
 void RemoteCalendars::remove(const std::string& url)

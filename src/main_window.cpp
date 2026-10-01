@@ -863,8 +863,10 @@ void MainWindow::on_cal_fetch_done()
         err = f.error;
       continue;
     }
-    remotes_.apply_ics(f.url, f.body);
-    ++ok;
+    if (remotes_.apply_ics(f.url, f.body))
+      ++ok;
+    else if (err.empty())
+      err = "Not an iCalendar file";
   }
   sync_cal_settings();
   refresh_marks();
