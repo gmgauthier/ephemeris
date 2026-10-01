@@ -399,9 +399,10 @@ std::vector<Glib::Date> byday_in_year(int year, const std::vector<ByDay>& rules)
 }
 
 /* COUNT counts every instance from DTSTART, including those outside [from,to].
- * day_span > 0 means the timed event ends on a later day. proto.start_min is the
- * first day's clock time and proto.end_min is the clock time on the last day.
- * Each slice is drawn on its own date. The whole span still counts as one instance. */
+ * day_span > 0 means the event covers later days. For a timed event, proto.start_min
+ * is the first day's clock time and proto.end_min is the clock time on the last day.
+ * For an all-day event both ends are the full day. Each slice is drawn on its own
+ * date. The whole span still counts as one instance. */
 bool take_instance(std::vector<Appointment>& out, const Appointment& proto, const Glib::Date& d,
                    const Glib::Date& from, const Glib::Date& to, int& emitted, int count,
                    bool has_until, const Glib::Date& until, int day_span)
@@ -444,7 +445,10 @@ void expand(const Appointment& proto, const Stamp& start, const Stamp& end, cons
             const Glib::Date& from, const Glib::Date& to, std::vector<Appointment>& out)
 {
   int day_span = 0;
-  if (!start.all_day && end.ok && !end.all_day && start.date.valid() && end.date.valid()) {
+  const bool same_kind =
+      end.ok && start.date.valid() && end.date.valid() && start.all_day == end.all_day;
+  if (same_kind) {
+    /* All-day DTEND is already exclusive-shortened, so this is an inclusive span. */
     day_span = static_cast<int>(end.date.get_julian()) - static_cast<int>(start.date.get_julian());
     if (day_span < 0)
       day_span = 0;

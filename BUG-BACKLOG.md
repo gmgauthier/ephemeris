@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), and `tests/test_span.cpp` (`span`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), and `tests/test_allday.cpp` (`allday`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day.
 
 ## Open
-
-### A multi-day all-day event appears only on the first day
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/ics.cpp:267`, `src/ics.cpp:371`
-- Trigger: `VALUE=DATE` with `DTSTART:20260928` and `DTEND:20260930` (two days), or a longer vacation.
-- Outcome: The exclusive `DTEND` is shortened by one day, then a non-recurring `expand` emits only `start.date`. The event appears on the start day and not on the following days.
 
 ### A long-running daily event can vanish from the visible window
 
@@ -135,6 +127,15 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Outcome: The test is `delta >= 0 && delta <= days`. That is today plus the seven days after it: eight dates.
 
 ## Closed
+
+### A multi-day all-day event appears only on the first day
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/ics.cpp` `expand`, `take_instance`
+- Trigger: `VALUE=DATE` with `DTSTART:20260928` and `DTEND:20260930` (two days), or a longer vacation.
+- Outcome: The exclusive `DTEND` was shortened by one day, then a non-recurring `expand` emitted only `start.date`. The event appeared on the start day and not on the following days.
+- Fixed in v1.1.4: After the exclusive `DTEND` is shortened, an all-day span is one full day per covered date and still one recurrence instance. A one-day event, including an exclusive `DTEND` on the next day, stays a single day. Timed spans are unchanged.
 
 ### A timed event that crosses midnight is shown as 30 minutes
 
