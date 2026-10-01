@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), `tests/test_window.cpp` (`window`), `tests/test_weekly.cpp` (`weekly`), `tests/test_monthday.cpp` (`monthday`), and `tests/test_params.cpp` (`params`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` and `COUNT=3` is 31 January, 31 March, and 31 May. February and 30 April are absent. `monthday` also checks a 30th, a 28th that does land in February, and a yearly 29 February. `calendar` mixes that 31st with a one-off on 2 February. `params` checks a `SUMMARY` with `LANGUAGE`, a folded parameterized summary, an `RRULE` with a parameter, a `STATUS` with a parameter, a `DURATION` with a parameter, and a `VALUE=DATE` stamp that also carries a time. `calendar` mixes a parameterized summary and a parameterized calendar name with a plain event. Property names are still matched with their original case. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window. `weekly` checks `BYDAY=SU,TU` with `COUNT=1` and `COUNT=2` from a Tuesday, the same rule from a Sunday, and a repeated weekday token.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`), `tests/test_byday.cpp` (`byday`), `tests/test_span.cpp` (`span`), `tests/test_allday.cpp` (`allday`), `tests/test_window.cpp` (`window`), `tests/test_weekly.cpp` (`weekly`), `tests/test_monthday.cpp` (`monthday`), `tests/test_params.cpp` (`params`), and `tests/test_case.cpp` (`casefold`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event, and a calendar that mixes an overnight timed event with a same-day event. A monthly rule from 31 January with no `BYDAY` and `COUNT=3` is 31 January, 31 March, and 31 May. February and 30 April are absent. `monthday` also checks a 30th, a 28th that does land in February, and a yearly 29 February. `calendar` mixes that 31st with a one-off on 2 February. `params` checks a `SUMMARY` with `LANGUAGE`, a folded parameterized summary, an `RRULE` with a parameter, a `STATUS` with a parameter, a `DURATION` with a parameter, and a `VALUE=DATE` stamp that also carries a time. `calendar` mixes a parameterized summary and a parameterized calendar name with a plain event. `casefold` checks a lower-case `BEGIN`/`SUMMARY`, a summary value that keeps its own case, a lower-case `RRULE`, `STATUS`, `DURATION`, and `VALUE=DATE`, and an empty `begin:vcalendar`. `calendar` also mixes that lower-case event with an upper-case one. `byday` checks ordinals, weekday lists, and yearly `BYDAY`. `span` checks a next-morning end, an end at the next midnight, a `DURATION` that crosses midnight, one daily instance of an overnight event, and a window that begins on the second day. `allday` checks a two-day `VALUE=DATE` event, a longer vacation, a one-day exclusive `DTEND`, a window that begins on the second day, and one daily instance of a multi-day event. `calendar` also mixes a two-day all-day event with a timed event on the first day. `window` checks a daily rule that starts 900 days before the window, a daily rule from 1990, a `COUNT` that is already spent before the window, an every-other-day phase, an overnight daily slice on the first visible day, and the 800-instance cap inside a long window. `weekly` checks `BYDAY=SU,TU` with `COUNT=1` and `COUNT=2` from a Tuesday, the same rule from a Sunday, and a repeated weekday token.
 
 ## Open
-
-### Property names are matched case-sensitively
-
-- Severity: incorrect
-- Confidence: medium
-- Where: `src/ics.cpp:350`
-- Trigger: `begin:vevent`, or `summary:Meet`. RFC 5545 names are case-insensitive.
-- Outcome: `BEGIN:VEVENT` is an exact string compare. A lower-case begin line is not an event, so the component is skipped.
 
 ### A grouped vCard property is dropped
 
@@ -95,6 +87,15 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Outcome: The test is `delta >= 0 && delta <= days`. That is today plus the seven days after it: eight dates.
 
 ## Closed
+
+### Property names are matched case-sensitively
+
+- Severity: incorrect
+- Confidence: medium
+- Where: `src/ics.cpp` property parser in `parse_ics`
+- Trigger: `begin:vevent`, or `summary:Meet`. RFC 5545 names are case-insensitive.
+- Outcome: `BEGIN:VEVENT` was an exact string compare. A lower-case begin line was not an event, so the component was skipped. A lower-case `SUMMARY` missed the title lookup.
+- Fixed in v1.1.9: Component names, property names, parameter names, and the fixed tokens this parser compares are matched without regard to case. A summary value keeps the case it was written in. `begin:vevent` with `summary:Meet` is an event titled Meet.
 
 ### A SUMMARY with parameters has a blank title
 
