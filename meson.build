@@ -220,3 +220,15 @@ ephemeris_keepdate_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('keepdate', ephemeris_keepdate_tests)
+
+ephemeris_cache_tests = executable(
+  'ephemeris-cache-tests',
+  'tests/test_cache.cpp',
+  'src/remote_cal.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('cache', ephemeris_cache_tests)
