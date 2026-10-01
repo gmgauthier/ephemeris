@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-10-01)
 
-**v1.1.6.** Weekly BYDAY expands in weekday order. Unbounded daily events stay visible in the window. Multi-day all-day events. Timed events that cross midnight. Monthly and yearly BYDAY. Outlook-class To Do and Notepad. Headless test suite and BUG-BACKLOG.md. Tags through `v1.1.6`.
+**v1.1.7.** A monthly or yearly day the month does not have is skipped. Weekly BYDAY expands in weekday order. Unbounded daily events stay visible in the window. Multi-day all-day events. Timed events that cross midnight. Monthly and yearly BYDAY. Outlook-class To Do and Notepad. Headless test suite and BUG-BACKLOG.md. Tags through `v1.1.7`.
 
 ## 1. Locked decisions
 

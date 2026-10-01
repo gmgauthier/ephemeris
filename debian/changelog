@@ -1,3 +1,9 @@
+ephemeris (1.1.7-1) unstable; urgency=medium
+
+  * Skip a monthly or yearly recurrence when the month has no such day.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 01 Oct 2026 22:46:38 +0100
+
 ephemeris (1.1.6-1) unstable; urgency=medium
 
   * Expand weekly BYDAY in weekday order, so COUNT consumes the
