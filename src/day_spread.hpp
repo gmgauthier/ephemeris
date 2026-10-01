@@ -48,4 +48,13 @@ class DaySpread : public Gtk::Box {
   sigc::signal<void> signal_goto_todo_;
 };
 
+/* One clickable row of the 08:00–18:00 grid. index is into the appointment
+ * list passed to day_grid_rows, or -1 for an empty slot. */
+struct GridRow {
+  int slot_min = 0;
+  int index = -1;
+};
+
+std::vector<GridRow> day_grid_rows(const std::vector<Appointment>& items);
+
 }  // namespace ephemeris
