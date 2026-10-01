@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/ephemeris (origin), https://github.c
 
 Reference window: `brand/ui-reference.svg`
 
-## Status (2026-09-27)
+## Status (2026-10-01)
 
-**v1.1.0.** Outlook-class To Do and Notepad. Tags through `v1.1.0`.
+**v1.1.1.** Outlook-class To Do and Notepad. Headless test suite and BUG-BACKLOG.md. Tags through `v1.1.1`.
 
 ## 1. Locked decisions
 
