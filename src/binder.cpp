@@ -263,6 +263,61 @@ const char* colour_hex(NoteColour c)
   }
 }
 
+namespace {
+
+bool month_has_day(int year, int month, int day)
+{
+  if (year < 1 || year > 9999 || month < 1 || month > 12 || day < 1 || day > 31)
+    return false;
+  const auto m = static_cast<Glib::Date::Month>(month);
+  const int dim = Glib::Date::get_days_in_month(m, static_cast<Glib::Date::Year>(year));
+  return day <= dim;
+}
+
+void set_ymd(Glib::Date& d, int year, int month, int day)
+{
+  d.set_dmy(static_cast<Glib::Date::Day>(day), static_cast<Glib::Date::Month>(month),
+            static_cast<Glib::Date::Year>(year));
+}
+
+// A month without this day is skipped. The day number is kept.
+void add_months_keeping_day(Glib::Date& d, int step)
+{
+  const int day = static_cast<int>(d.get_day());
+  int year = static_cast<int>(d.get_year());
+  int month = static_cast<int>(d.get_month());
+  for (int i = 0; i < 480; ++i) {
+    const long long index = (static_cast<long long>(month) - 1) + step;
+    const long long next_year = static_cast<long long>(year) + index / 12;
+    if (next_year < 1 || next_year > 9999)
+      return;
+    year = static_cast<int>(next_year);
+    month = static_cast<int>(index % 12) + 1;
+    if (!month_has_day(year, month, day))
+      continue;
+    set_ymd(d, year, month, day);
+    return;
+  }
+}
+
+void add_years_keeping_day(Glib::Date& d, int step)
+{
+  const int day = static_cast<int>(d.get_day());
+  const int month = static_cast<int>(d.get_month());
+  int year = static_cast<int>(d.get_year());
+  for (int i = 0; i < 480; ++i) {
+    if (static_cast<long long>(year) + step > 9999)
+      return;
+    year += step;
+    if (!month_has_day(year, month, day))
+      continue;
+    set_ymd(d, year, month, day);
+    return;
+  }
+}
+
+}  // namespace
+
 void add_recur(Glib::Date& d, Recur r, int interval)
 {
   if (!d.valid())
@@ -276,10 +331,10 @@ void add_recur(Glib::Date& d, Recur r, int interval)
       d.add_days(7 * n);
       break;
     case Recur::monthly:
-      d.add_months(n);
+      add_months_keeping_day(d, n);
       break;
     case Recur::yearly:
-      d.add_years(n);
+      add_years_keeping_day(d, n);
       break;
     case Recur::none:
     default:
