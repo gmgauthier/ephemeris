@@ -1,3 +1,9 @@
+ephemeris (1.1.12-1) unstable; urgency=medium
+
+  * Keep a vCard that has only a phone number.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 01 Oct 2026 23:12:07 +0100
+
 ephemeris (1.1.11-1) unstable; urgency=medium
 
   * Keep a semicolon inside a vCard N field.
