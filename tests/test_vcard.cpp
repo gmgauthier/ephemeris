@@ -163,5 +163,51 @@ int main()
     CHECK(again[0].notes == "see; west");
   }
 
+  {
+    const char* text =
+        "BEGIN:VCARD\r\n"
+        "TEL;TYPE=CELL:555-0100\r\n"
+        "END:VCARD\r\n";
+    const auto people = ephemeris::parse_vcf(text);
+    CHECK(people.size() == 1);
+    CHECK(people[0].phone == "555-0100");
+    CHECK(people[0].first.empty());
+    CHECK(people[0].last.empty());
+    CHECK(people[0].email.empty());
+  }
+
+  {
+    const char* text =
+        "BEGIN:VCARD\r\n"
+        "item1.TEL:555-0199\r\n"
+        "NOTE:desk\r\n"
+        "END:VCARD\r\n";
+    const auto people = ephemeris::parse_vcf(text);
+    CHECK(people.size() == 1);
+    CHECK(people[0].phone == "555-0199");
+    CHECK(people[0].notes == "desk");
+    CHECK(people[0].first.empty());
+    CHECK(people[0].last.empty());
+    CHECK(people[0].email.empty());
+  }
+
+  {
+    const char* text =
+        "BEGIN:VCARD\r\n"
+        "END:VCARD\r\n";
+    const auto people = ephemeris::parse_vcf(text);
+    CHECK(people.empty());
+  }
+
+  {
+    ephemeris::Contact card;
+    card.phone = "555-0100";
+    card.notes = "desk";
+    const auto again = ephemeris::parse_vcf(ephemeris::contacts_to_vcf({card}));
+    CHECK(again.size() == 1);
+    CHECK(again[0].phone == "555-0100");
+    CHECK(again[0].notes == "desk");
+  }
+
   return suite_test::done("vcard");
 }

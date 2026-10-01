@@ -248,6 +248,28 @@ int main()
 
   {
     const char* text =
+        "BEGIN:VCARD\r\n"
+        "TEL;TYPE=CELL:555-0100\r\n"
+        "NOTE:desk\r\n"
+        "END:VCARD\r\n"
+        "BEGIN:VCARD\r\n"
+        "N:Plain;Pat;;;\r\n"
+        "EMAIL:pat@example.com\r\n"
+        "END:VCARD\r\n";
+    const auto people = ephemeris::parse_vcf(text);
+    CHECK(people.size() == 2);
+    CHECK(people[0].phone == "555-0100");
+    CHECK(people[0].notes == "desk");
+    CHECK(people[0].first.empty());
+    CHECK(people[0].last.empty());
+    CHECK(people[0].email.empty());
+    CHECK(people[1].last == "Plain");
+    CHECK(people[1].first == "Pat");
+    CHECK(people[1].email == "pat@example.com");
+  }
+
+  {
+    const char* text =
         "BEGIN:VCALENDAR\n"
         "X-WR-CALNAME:Desk\n"
         "BEGIN:VEVENT\n"
