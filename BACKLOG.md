@@ -1,6 +1,6 @@
 # Ephemeris backlog
 
-Current release: **v1.1.10**. Last updated: 2026-10-01.
+Current release: **v1.1.11**. Last updated: 2026-10-01.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -27,6 +27,8 @@ None.
 - Bryan’s seal
 
 ## Shipped
+
+**v1.1.11** — A semicolon inside a vCard `N` field round-trips. `Smith\; Jr` stays the last name.
 
 **v1.1.10** — A grouped vCard property such as `item1.TEL` or `A.EMAIL` keeps the phone or email.
 
