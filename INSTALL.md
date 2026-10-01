@@ -9,7 +9,7 @@ Four ways to get a binary, in the order LCOS cares about:
 | **AppImage** | Fallback for distros that do not install `.deb` files. gtkmm only. Published on the GitHub/Gitea release. |
 | **Git build** | Developers. See below. |
 
-Version comes from `meson.build` (currently `1.1.9`).
+Version comes from `meson.build` (currently `1.1.10`).
 
 ## Runtime needs
 
@@ -29,14 +29,14 @@ sudo apt install libgtkmm-3.0-1t64 libxml2 libsoup-3.0-0 glib-networking
 From a release `.deb`:
 
 ```
-sudo apt install ./dist/ephemeris_1.1.9-1_amd64.deb
+sudo apt install ./dist/ephemeris_1.1.10-1_amd64.deb
 ```
 
 Or, from this tree:
 
 ```
 ./scripts/release.sh deb
-sudo apt install ./dist/ephemeris_1.1.9-1_amd64.deb
+sudo apt install ./dist/ephemeris_1.1.10-1_amd64.deb
 ```
 
 That installs:
@@ -56,8 +56,8 @@ Uninstall: `sudo apt remove ephemeris`.
 `meson dist` produces `build/meson-dist/ephemeris-VERSION.tar.xz` (sample binders under `data/samples/` are git-only, not in the tarball).
 
 ```
-tar -xf ephemeris-1.1.9.tar.xz
-cd ephemeris-1.1.9
+tar -xf ephemeris-1.1.10.tar.xz
+cd ephemeris-1.1.10
 sudo apt install build-essential meson ninja-build pkg-config \
   libgtkmm-3.0-dev libxml2-dev libsoup-3.0-dev
 meson setup build --prefix=/usr
