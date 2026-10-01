@@ -2,17 +2,9 @@
 
 Reviewed 2026-10-01 against the 1.1.0 sources.
 
-`meson test` runs `tests/test_calendar.cpp` (`calendar`). It checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, and a vCard round trip. A monthly rule from 31 January is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below.
+`meson test` runs `tests/test_calendar.cpp` (`calendar`) and `tests/test_byday.cpp` (`byday`). `calendar` checks a rejected document, an all-day event with an exclusive `DTEND`, a cancelled event dropped, a daily `COUNT`, weekly `BYDAY=MO,WE` in weekday order, a folded summary, a vCard round trip, and a calendar that mixes a monthly `BYDAY=1MO` rule with a one-day event. A monthly rule from 31 January with no `BYDAY` is required to appear on 31 January and 31 March. February is not asserted, so the suite does not canonize the clamp below. `byday` checks ordinals, weekday lists, and yearly `BYDAY`.
 
 ## Open
-
-### Monthly and yearly rules ignore BYDAY
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/ics.cpp:60`, `src/ics.cpp:312`
-- Trigger: `RRULE:FREQ=MONTHLY;BYDAY=1MO`, or `FREQ=MONTHLY;BYDAY=MO,WE,FR`.
-- Outcome: `byday_index` strips a leading `+`, `-`, or digits, so `1MO` becomes `MO` and the ordinal is discarded. The monthly and yearly branch never reads `rule.byday`. The event repeats on `DTSTART`'s day of the month. Weekly `BYDAY` does work when the list is in weekday order. `ics.hpp` describes `BYDAY` as supported.
 
 ### A timed event that crosses midnight is shown as 30 minutes
 
@@ -152,4 +144,11 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 
 ## Closed
 
-None.
+### Monthly and yearly rules ignore BYDAY
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/ics.cpp` `parse_byday`, `byday_in_month`, `byday_in_year`
+- Trigger: `RRULE:FREQ=MONTHLY;BYDAY=1MO`, `FREQ=MONTHLY;BYDAY=MO,WE,FR`, or `FREQ=YEARLY;BYDAY=1MO`.
+- Outcome: The ordinal was discarded and the monthly and yearly branch repeated `DTSTART`'s day of the month.
+- Fixed: `BYDAY` keeps its ordinal. Monthly rules expand inside each month and yearly rules inside each year, in date order. `1MO` is the first Monday, `-1FR` the last Friday, and a bare weekday is every matching day. A rule with no `BYDAY` still repeats on the start day.

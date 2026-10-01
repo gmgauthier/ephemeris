@@ -88,3 +88,14 @@ ephemeris_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('calendar', ephemeris_tests)
+
+ephemeris_byday_tests = executable(
+  'ephemeris-byday-tests',
+  'tests/test_byday.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('byday', ephemeris_byday_tests)
