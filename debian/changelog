@@ -1,3 +1,9 @@
+ephemeris (1.1.14-1) unstable; urgency=medium
+
+  * Reject a day the month does not have.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 01 Oct 2026 23:33:46 +0100
+
 ephemeris (1.1.13-1) unstable; urgency=medium
 
   * Keep a to-do's day when the next month or year is short.
