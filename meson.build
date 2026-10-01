@@ -110,3 +110,14 @@ ephemeris_span_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('span', ephemeris_span_tests)
+
+ephemeris_allday_tests = executable(
+  'ephemeris-allday-tests',
+  'tests/test_allday.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('allday', ephemeris_allday_tests)

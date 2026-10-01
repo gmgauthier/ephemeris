@@ -239,5 +239,43 @@ int main()
     CHECK(standups == 1);
   }
 
+  {
+    const char* text =
+        "BEGIN:VCALENDAR\n"
+        "X-WR-CALNAME:Desk\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART;VALUE=DATE:20260928\n"
+        "DTEND;VALUE=DATE:20260930\n"
+        "SUMMARY:Vacation\n"
+        "END:VEVENT\n"
+        "BEGIN:VEVENT\n"
+        "DTSTART:20260928T090000\n"
+        "DTEND:20260928T100000\n"
+        "SUMMARY:Meet\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n";
+    const auto parsed = ephemeris::parse_ics(text, from, to);
+    CHECK(parsed.error.empty());
+    CHECK(parsed.title == "Desk");
+    int vacations = 0;
+    int meets = 0;
+    for (const auto& item : parsed.items) {
+      if (item.text == "Vacation") {
+        ++vacations;
+        CHECK(item.start_min == 0);
+        CHECK(item.end_min == 24 * 60);
+        CHECK(item.date.compare(day(28, Glib::Date::SEPTEMBER, 2026)) == 0 ||
+              item.date.compare(day(29, Glib::Date::SEPTEMBER, 2026)) == 0);
+      } else if (item.text == "Meet") {
+        ++meets;
+        CHECK(item.date.compare(day(28, Glib::Date::SEPTEMBER, 2026)) == 0);
+        CHECK(item.start_min == 9 * 60);
+        CHECK(item.end_min == 10 * 60);
+      }
+    }
+    CHECK(vacations == 2);
+    CHECK(meets == 1);
+  }
+
   return suite_test::done("calendar");
 }
