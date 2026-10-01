@@ -1,6 +1,6 @@
 # Ephemeris backlog
 
-Current release: **v1.1.2**. Last updated: 2026-10-01.
+Current release: **v1.1.3**. Last updated: 2026-10-01.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -27,6 +27,8 @@ None.
 - Bryan’s seal
 
 ## Shipped
+
+**v1.1.3** — Timed events that cross midnight are drawn on each covered day. A `DURATION` sets the end when `DTEND` is absent.
 
 **v1.1.2** — Monthly and yearly `BYDAY`, including ordinals such as `1MO` and `-1FR`.
 
