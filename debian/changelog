@@ -1,3 +1,9 @@
+ephemeris (1.1.9-1) unstable; urgency=medium
+
+  * Match iCalendar names without regard to case.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 01 Oct 2026 22:59:58 +0100
+
 ephemeris (1.1.8-1) unstable; urgency=medium
 
   * Keep a property's value when the line carries parameters.

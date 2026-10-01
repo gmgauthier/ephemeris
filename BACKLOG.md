@@ -1,6 +1,6 @@
 # Ephemeris backlog
 
-Current release: **v1.1.8**. Last updated: 2026-10-01.
+Current release: **v1.1.9**. Last updated: 2026-10-01.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -27,6 +27,8 @@ None.
 - Bryan’s seal
 
 ## Shipped
+
+**v1.1.9** — iCalendar names match without regard to case. A summary value keeps the case it was written in.
 
 **v1.1.8** — A property that carries parameters still matches its name, so a `SUMMARY` with `LANGUAGE` keeps its title.
 
