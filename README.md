@@ -24,7 +24,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v1.1.1.** Outlook-class To Do fields and views; Notepad colour, categories, list views, and search. Headless test suite and BUG-BACKLOG.md. See [INSTALL.md](INSTALL.md).
+**v1.1.2.** Monthly and yearly BYDAY, including ordinals. Outlook-class To Do fields and views; Notepad colour, categories, list views, and search. Headless test suite and BUG-BACKLOG.md. See [INSTALL.md](INSTALL.md).
 
 | Doc | What |
 |---|---|

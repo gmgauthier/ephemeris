@@ -151,4 +151,4 @@ Reviewed 2026-10-01 against the 1.1.0 sources.
 - Where: `src/ics.cpp` `parse_byday`, `byday_in_month`, `byday_in_year`
 - Trigger: `RRULE:FREQ=MONTHLY;BYDAY=1MO`, `FREQ=MONTHLY;BYDAY=MO,WE,FR`, or `FREQ=YEARLY;BYDAY=1MO`.
 - Outcome: The ordinal was discarded and the monthly and yearly branch repeated `DTSTART`'s day of the month.
-- Fixed: `BYDAY` keeps its ordinal. Monthly rules expand inside each month and yearly rules inside each year, in date order. `1MO` is the first Monday, `-1FR` the last Friday, and a bare weekday is every matching day. A rule with no `BYDAY` still repeats on the start day.
+- Fixed in v1.1.2: `BYDAY` keeps its ordinal. Monthly rules expand inside each month and yearly rules inside each year, in date order. `1MO` is the first Monday, `-1FR` the last Friday, and a bare weekday is every matching day. A rule with no `BYDAY` still repeats on the start day.
