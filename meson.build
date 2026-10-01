@@ -258,3 +258,16 @@ ephemeris_planner_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('planner', ephemeris_planner_tests)
+
+ephemeris_week_tests = executable(
+  'ephemeris-week-tests',
+  'tests/test_week.cpp',
+  'src/todo_page.cpp',
+  'src/mention.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('week', ephemeris_week_tests)

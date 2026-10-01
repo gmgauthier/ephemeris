@@ -194,15 +194,15 @@ TodoDlg run_todo_dialog(Gtk::Window& parent, Todo& t, bool existing, Binder* bin
   return TodoDlg::ok;
 }
 
+}  // namespace
+
 bool in_next_days(const Glib::Date& due, const Glib::Date& today, int days)
 {
-  if (!due.valid() || !today.valid())
+  if (!due.valid() || !today.valid() || days < 1)
     return false;
   const long delta = static_cast<long>(due.get_julian()) - static_cast<long>(today.get_julian());
-  return delta >= 0 && delta <= days;
+  return delta >= 0 && delta < days;
 }
-
-}  // namespace
 
 TodoPage::TodoPage()
     : Gtk::Box(Gtk::ORIENTATION_VERTICAL, 8)

@@ -34,4 +34,7 @@ class TodoPage : public Gtk::Box {
   sigc::signal<void> signal_changed_;
 };
 
+/* Due dates on the next-seven-days list. Passing 7 is today and the six days after it. */
+bool in_next_days(const Glib::Date& due, const Glib::Date& today, int days);
+
 }  // namespace ephemeris
