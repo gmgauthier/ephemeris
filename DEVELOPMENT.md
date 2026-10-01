@@ -11,7 +11,7 @@ Reference window: `brand/ui-reference.svg`
 
 ## Status (2026-10-01)
 
-**v1.1.12.** A vCard that has only a phone number is kept. A semicolon inside a vCard N field round-trips. A grouped vCard phone or email is kept. iCalendar names match without regard to case. A property name keeps its value when the line carries parameters. A monthly or yearly day the month does not have is skipped. Weekly BYDAY expands in weekday order. Unbounded daily events stay visible in the window. Multi-day all-day events. Timed events that cross midnight. Monthly and yearly BYDAY. Outlook-class To Do and Notepad. Headless test suite and BUG-BACKLOG.md. Tags through `v1.1.12`.
+**v1.1.13.** Completing a monthly or yearly to-do keeps that day. A vCard that has only a phone number is kept. A semicolon inside a vCard N field round-trips. A grouped vCard phone or email is kept. iCalendar names match without regard to case. A property name keeps its value when the line carries parameters. A monthly or yearly day the month does not have is skipped. Weekly BYDAY expands in weekday order. Unbounded daily events stay visible in the window. Multi-day all-day events. Timed events that cross midnight. Monthly and yearly BYDAY. Outlook-class To Do and Notepad. Headless test suite and BUG-BACKLOG.md. Tags through `v1.1.13`.
 
 ## 1. Locked decisions
 
