@@ -1,3 +1,10 @@
+ephemeris (1.1.5-1) unstable; urgency=medium
+
+  * Keep an unbounded daily event visible when it started long before
+    the window. COUNT still counts from the start date.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 01 Oct 2026 20:04:11 +0100
+
 ephemeris (1.1.4-1) unstable; urgency=medium
 
   * Draw a multi-day all-day event on each day it covers.
