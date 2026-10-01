@@ -187,3 +187,14 @@ ephemeris_vcard_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('vcard', ephemeris_vcard_tests)
+
+ephemeris_recur_tests = executable(
+  'ephemeris-recur-tests',
+  'tests/test_recur.cpp',
+  'src/ics.cpp',
+  'src/vcard.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('recur', ephemeris_recur_tests)
