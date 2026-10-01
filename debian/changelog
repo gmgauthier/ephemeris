@@ -1,3 +1,9 @@
+ephemeris (1.1.19-1) unstable; urgency=medium
+
+  * Count seven dates on the next-seven-days list.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 00:52:33 +0100
+
 ephemeris (1.1.18-1) unstable; urgency=medium
 
   * Open the planner event painted on top of a day.
