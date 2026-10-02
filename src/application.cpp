@@ -30,6 +30,31 @@ bool fill_unix_addr(sockaddr_un* addr, const std::string& path)
   return true;
 }
 
+// SOCK_CLOEXEC and accept4() are Linux extensions; elsewhere the flag is set after the fact.
+int cloexec_socket()
+{
+#ifdef SOCK_CLOEXEC
+  return ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+#else
+  const int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd >= 0)
+    ::fcntl(fd, F_SETFD, FD_CLOEXEC);
+  return fd;
+#endif
+}
+
+int cloexec_accept(int listen_fd)
+{
+#ifdef SOCK_CLOEXEC
+  return ::accept4(listen_fd, nullptr, nullptr, SOCK_CLOEXEC);
+#else
+  const int fd = ::accept(listen_fd, nullptr, nullptr);
+  if (fd >= 0)
+    ::fcntl(fd, F_SETFD, FD_CLOEXEC);
+  return fd;
+#endif
+}
+
 std::string runtime_dir()
 {
   const std::string dir = Glib::get_user_runtime_dir();
@@ -85,7 +110,7 @@ void Application::listen_socket()
 {
   const std::string path = socket_path();
   ::unlink(path.c_str());
-  listen_fd_ = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+  listen_fd_ = cloexec_socket();
   if (listen_fd_ < 0)
     return;
   sockaddr_un addr;
@@ -117,7 +142,7 @@ bool Application::send_present() const
   if (!fill_unix_addr(&addr, socket_path()))
     return false;
   for (int attempt = 0; attempt < 25; ++attempt) {
-    const int fd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    const int fd = cloexec_socket();
     if (fd < 0)
       return false;
     if (::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == 0) {
@@ -137,7 +162,7 @@ bool Application::on_listen_io(Glib::IOCondition)
 {
   if (listen_fd_ < 0)
     return false;
-  const int cfd = ::accept4(listen_fd_, nullptr, nullptr, SOCK_CLOEXEC);
+  const int cfd = cloexec_accept(listen_fd_);
   if (cfd < 0)
     return true;
   char buf[64];
