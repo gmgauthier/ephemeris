@@ -1,3 +1,10 @@
+ephemeris (1.1.20-1) unstable; urgency=medium
+
+  * Build the single-instance socket on macOS, and prefer the X11 GDK
+    backend but fall back to any other, so macOS launches.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 15:49:39 +0100
+
 ephemeris (1.1.19-1) unstable; urgency=medium
 
   * Count seven dates on the next-seven-days list.
