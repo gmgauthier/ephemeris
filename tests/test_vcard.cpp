@@ -227,5 +227,26 @@ int main()
     CHECK(!notes.keepable());
   }
 
+  {
+    // The envelope is matched without regard to case. Values keep their case.
+    const char* text =
+        "begin:vcard\r\n"
+        "n:Smith;Ada\r\n"
+        "tel:555-0100\r\n"
+        "end:vcard\r\n"
+        "Begin:VCARD\r\n"
+        "FN:Ada Lovelace\r\n"
+        "EMAIL:Ada@Example.test\r\n"
+        "End:VCard\r\n";
+    const auto people = ephemeris::parse_vcf(text);
+    CHECK(people.size() == 2);
+    CHECK(people[0].last == "Smith");
+    CHECK(people[0].first == "Ada");
+    CHECK(people[0].phone == "555-0100");
+    CHECK(people[1].first == "Ada Lovelace");
+    CHECK(people[1].email == "Ada@Example.test");
+    CHECK(people[1].last.empty());
+  }
+
   return suite_test::done("vcard");
 }
