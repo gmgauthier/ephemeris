@@ -87,6 +87,12 @@ struct Contact {
   Glib::ustring display_name() const;
   Glib::ustring sort_label() const;
   gunichar last_initial() const;
+
+  /* A name, a phone, or an email is enough. A blank card, or only a note, is not. */
+  bool keepable() const
+  {
+    return !first.empty() || !last.empty() || !phone.empty() || !email.empty();
+  }
 };
 
 class Binder {

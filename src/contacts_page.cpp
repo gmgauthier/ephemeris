@@ -271,7 +271,7 @@ void ContactsPage::on_add_contact()
   Contact c;
   if (run_contact_dialog(*win, c, false) != ContactDlg::ok)
     return;
-  if (c.first.empty() && c.last.empty())
+  if (!c.keepable())
     return;
   binder_->add_contact(c);
   signal_changed_.emit();
@@ -298,7 +298,7 @@ void ContactsPage::edit_item(int id)
   }
   if (r != ContactDlg::ok)
     return;
-  if (c.first.empty() && c.last.empty())
+  if (!c.keepable())
     return;
   binder_->update_contact(c);
   signal_changed_.emit();

@@ -209,5 +209,23 @@ int main()
     CHECK(again[0].notes == "desk");
   }
 
+  {
+    // Add and edit keep a card the file would keep.
+    ephemeris::Contact phone;
+    phone.phone = "555-0100";
+    CHECK(phone.keepable());
+    ephemeris::Contact email;
+    email.email = "a@b.test";
+    CHECK(email.keepable());
+    ephemeris::Contact named;
+    named.last = "Smith";
+    CHECK(named.keepable());
+    ephemeris::Contact blank;
+    CHECK(!blank.keepable());
+    ephemeris::Contact notes;
+    notes.notes = "desk";
+    CHECK(!notes.keepable());
+  }
+
   return suite_test::done("vcard");
 }
