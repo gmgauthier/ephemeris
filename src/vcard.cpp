@@ -56,6 +56,15 @@ std::string escape(const Glib::ustring& in)
   return out;
 }
 
+std::string ascii_upper(std::string s)
+{
+  for (char& c : s) {
+    if (c >= 'a' && c <= 'z')
+      c = static_cast<char>(c - 'a' + 'A');
+  }
+  return s;
+}
+
 /* Group is an optional prefix before the first '.'. Parameters follow ';'. */
 std::string prop_name(const std::string& key)
 {
@@ -105,12 +114,13 @@ std::vector<Contact> parse_vcf(const std::string& text)
   while (std::getline(in, line)) {
     if (!line.empty() && line.back() == '\r')
       line.pop_back();
-    if (line == "BEGIN:VCARD") {
+    const std::string folded = ascii_upper(line);
+    if (folded == "BEGIN:VCARD") {
       cur = {};
       in_card = true;
       continue;
     }
-    if (line == "END:VCARD") {
+    if (folded == "END:VCARD") {
       if (in_card && cur.keepable())
         out.push_back(cur);
       in_card = false;
