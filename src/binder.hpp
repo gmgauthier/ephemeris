@@ -193,6 +193,10 @@ const char* colour_label(NoteColour c);
 const char* colour_hex(NoteColour c);
 void normalize_todo(Todo& t);
 bool stamp_to_date(const std::string& stamped, Glib::Date& out);
+
+/* A note from today back through the previous days. Passing 7 is today and
+ * the six days before it. A future stamp is outside the window. */
+bool in_last_days(const Glib::Date& stamped, const Glib::Date& today, int days);
 const char* planner_color(int category);
 std::string now_stamp();
 
