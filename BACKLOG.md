@@ -1,6 +1,6 @@
 # Ephemeris backlog
 
-Current release: **v1.1.20**. Last updated: 2026-10-06.
+Current release: **v1.1.21**. Last updated: 2026-10-06.
 
 Lotus Organizer (ring binder). Local paper book only. Binary `ephemeris`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -27,6 +27,8 @@ None.
 - Bryan’s seal
 
 ## Shipped
+
+**v1.1.21** — A contact with a phone or an email and no name is kept.
 
 **v1.1.20** — Notepad's last seven days are today and the six days before it.
 

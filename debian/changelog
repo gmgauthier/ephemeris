@@ -1,3 +1,9 @@
+ephemeris (1.1.21-1) unstable; urgency=medium
+
+  * Keep a contact that has a phone or an email and no name.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Tue, 06 Oct 2026 18:21:53 +0100
+
 ephemeris (1.1.20-1) unstable; urgency=medium
 
   * Count seven dates on the Notepad last-seven-days list.
