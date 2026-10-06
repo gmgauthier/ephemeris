@@ -240,8 +240,7 @@ std::vector<Note> NotepadPage::visible() const
       Glib::Date d;
       if (!stamp_to_date(n.stamped, d) || !d.valid())
         continue;
-      const long delta = static_cast<long>(today.get_julian()) - static_cast<long>(d.get_julian());
-      if (delta < 0 || delta > 7)
+      if (!in_last_days(d, today, 7))
         continue;
     }
     out.push_back(n);

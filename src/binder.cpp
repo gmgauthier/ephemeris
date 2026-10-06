@@ -373,6 +373,15 @@ bool stamp_to_date(const std::string& stamped, Glib::Date& out)
   return date_from_iso(stamped.substr(0, 10), out);
 }
 
+bool in_last_days(const Glib::Date& stamped, const Glib::Date& today, int days)
+{
+  if (!stamped.valid() || !today.valid() || days < 1)
+    return false;
+  const long delta =
+      static_cast<long>(today.get_julian()) - static_cast<long>(stamped.get_julian());
+  return delta >= 0 && delta < days;
+}
+
 const char* planner_color(int category)
 {
   static const char* colors[] = {"#C45C4A", "#1660C4", "#1B4D3E", "#B8860B", "#5C4A6B"};

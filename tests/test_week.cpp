@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Unlicense */
 
+#include "binder.hpp"
 #include "check.hpp"
 #include "todo_page.hpp"
 
@@ -83,6 +84,17 @@ int main()
   CHECK(ephemeris::in_next_days(dec30, dec30, 7));
   CHECK(ephemeris::in_next_days(jan5, dec30, 7));
   CHECK(!ephemeris::in_next_days(jan6, dec30, 7));
+
+  const Glib::Date six_back = day(22, Glib::Date::JANUARY, 2026);
+  const Glib::Date seven_back = day(21, Glib::Date::JANUARY, 2026);
+  CHECK(ephemeris::in_last_days(today, today, 7));
+  CHECK(ephemeris::in_last_days(yesterday, today, 7));
+  CHECK(ephemeris::in_last_days(six_back, today, 7));
+  CHECK(!ephemeris::in_last_days(seven_back, today, 7));
+  CHECK(!ephemeris::in_last_days(tomorrow, today, 7));
+  CHECK(!ephemeris::in_last_days(blank, today, 7));
+  CHECK(!ephemeris::in_last_days(today, blank, 7));
+  CHECK(!ephemeris::in_last_days(today, today, 0));
 
   TempBook book;
   CHECK(!book.path().empty());
