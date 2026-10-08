@@ -1,7 +1,7 @@
 project(
   'ephemeris',
   'cpp',
-  version: '1.1.22',
+  version: '1.2.0',
   license: 'Unlicense',
   meson_version: '>=0.56',
   default_options: [
