@@ -116,8 +116,209 @@ void default_planner_keys(std::array<Glib::ustring, kPlannerKeyCount>& keys)
   keys[0] = "Holiday";
   keys[1] = "Visit";
   keys[2] = "Travel";
-  keys[3] = "Streaming";
+  keys[3] = "Projects";
   keys[4] = "Other";
+}
+
+const char* month_name(int month)
+{
+  static const char* names[] = {"",        "January",  "February", "March",  "April",
+                                "May",     "June",     "July",     "August", "September",
+                                "October", "November", "December"};
+  if (month < 1 || month > 12)
+    return "";
+  return names[month];
+}
+
+int month_from_name(const std::string& name)
+{
+  const Glib::ustring folded = Glib::ustring(name).casefold();
+  for (int i = 1; i <= 12; ++i) {
+    if (folded == Glib::ustring(month_name(i)).casefold())
+      return i;
+  }
+  return 0;
+}
+
+std::vector<NotePara> paras_from_plain(const Glib::ustring& body)
+{
+  std::vector<NotePara> paras;
+  if (body.empty())
+    return paras;
+  Glib::ustring::size_type i = 0;
+  while (i <= body.size()) {
+    const auto nl = body.find('\n', i);
+    const Glib::ustring line = nl == Glib::ustring::npos ? body.substr(i) : body.substr(i, nl - i);
+    NotePara para;
+    if (!line.empty())
+      para.spans.push_back(NoteSpan{line, false, false});
+    paras.push_back(std::move(para));
+    if (nl == Glib::ustring::npos)
+      break;
+    i = nl + 1;
+    if (i == body.size()) {
+      paras.push_back(NotePara{});
+      break;
+    }
+  }
+  return paras;
+}
+
+void collect_spans(xmlNode* parent, NotePara& para, bool bold, bool italic)
+{
+  if (!parent)
+    return;
+  for (xmlNode* c = parent->children; c; c = c->next) {
+    if (c->type == XML_TEXT_NODE || c->type == XML_CDATA_SECTION_NODE) {
+      xmlChar* v = xmlNodeGetContent(c);
+      if (!v)
+        continue;
+      Glib::ustring text(reinterpret_cast<const char*>(v));
+      xmlFree(v);
+      if (!text.empty())
+        para.spans.push_back(NoteSpan{std::move(text), bold, italic});
+    } else if (c->type == XML_ELEMENT_NODE) {
+      const std::string name = node_name(c);
+      if (name == "b")
+        collect_spans(c, para, true, italic);
+      else if (name == "i")
+        collect_spans(c, para, bold, true);
+      else
+        collect_spans(c, para, bold, italic);
+    }
+  }
+}
+
+bool note_element(const std::string& name)
+{
+  return name == "p" || name == "li" || name == "b" || name == "i";
+}
+
+void read_note_body(xmlNode* n, Note& note)
+{
+  bool structured = false;
+  for (xmlNode* c = n ? n->children : nullptr; c; c = c->next) {
+    if (c->type == XML_ELEMENT_NODE && note_element(node_name(c))) {
+      structured = true;
+      break;
+    }
+  }
+  if (!structured) {
+    note.body = node_text(n);
+    note.paras = paras_from_plain(note.body);
+    return;
+  }
+  for (xmlNode* c = n->children; c; c = c->next) {
+    if (c->type != XML_ELEMENT_NODE)
+      continue;
+    const std::string name = node_name(c);
+    if (!note_element(name))
+      continue;
+    NotePara para;
+    para.bullet = name == "li";
+    if (name == "b")
+      collect_spans(c, para, true, false);
+    else if (name == "i")
+      collect_spans(c, para, false, true);
+    else
+      collect_spans(c, para, false, false);
+    note.paras.push_back(std::move(para));
+  }
+  note.body = note_plain(note.paras);
+}
+
+void write_styled(std::ostringstream& os, const Glib::ustring& text, bool bold, bool italic)
+{
+  const std::string esc = xml_escape(text);
+  if (bold && italic)
+    os << "<b><i>" << esc << "</i></b>";
+  else if (bold)
+    os << "<b>" << esc << "</b>";
+  else if (italic)
+    os << "<i>" << esc << "</i>";
+  else
+    os << esc;
+}
+
+bool span_blank(const Glib::ustring& text)
+{
+  return text.find_first_not_of(" \t\n\r") == Glib::ustring::npos;
+}
+
+/* A whitespace-only text node is dropped by XML_PARSE_NOBLANKS. Fold it into
+ * the neighbouring run so the space stays in the note. */
+std::vector<NoteSpan> fold_spans(const std::vector<NoteSpan>& spans)
+{
+  std::vector<NoteSpan> out;
+  for (const auto& span : spans) {
+    if (span.text.empty())
+      continue;
+    if (span_blank(span.text) && !out.empty()) {
+      out.back().text += span.text;
+      continue;
+    }
+    if (!out.empty() && span_blank(out.back().text)) {
+      NoteSpan merged = span;
+      merged.text = out.back().text + span.text;
+      out.back() = std::move(merged);
+      continue;
+    }
+    out.push_back(span);
+  }
+  return out;
+}
+
+void write_note_contents(std::ostringstream& os, const Note& n)
+{
+  if (!note_has_markup(n.paras)) {
+    os << xml_escape(n.body);
+    return;
+  }
+  for (const auto& para : n.paras) {
+    os << (para.bullet ? "<li>" : "<p>");
+    const std::vector<NoteSpan> spans = fold_spans(para.spans);
+    std::size_t i = 0;
+    while (i < spans.size()) {
+      const bool bold = spans[i].bold;
+      const bool italic = spans[i].italic;
+      Glib::ustring text = spans[i].text;
+      std::size_t j = i + 1;
+      while (j < spans.size() && spans[j].bold == bold && spans[j].italic == italic) {
+        text += spans[j].text;
+        ++j;
+      }
+      write_styled(os, text, bold, italic);
+      i = j;
+    }
+    os << (para.bullet ? "</li>" : "</p>");
+  }
+}
+
+void sync_note_text(Note& n)
+{
+  if (!n.paras.empty())
+    n.body = note_plain(n.paras);
+  else if (!n.body.empty())
+    n.paras = paras_from_plain(n.body);
+}
+
+void ensure_journal(Note& n)
+{
+  Glib::Date d;
+  if (!n.journal.empty() && date_from_iso(n.journal, d))
+    return;
+  n.journal.clear();
+  if (stamp_to_date(n.stamped, d))
+    n.journal = date_iso(d);
+}
+
+bool has_category(const std::vector<Glib::ustring>& names, const Glib::ustring& name)
+{
+  for (const auto& c : names) {
+    if (c == name)
+      return true;
+  }
+  return false;
 }
 
 }  // namespace
@@ -402,6 +603,89 @@ std::string now_stamp()
   return out;
 }
 
+Glib::ustring note_plain(const std::vector<NotePara>& paras)
+{
+  Glib::ustring out;
+  for (std::size_t i = 0; i < paras.size(); ++i) {
+    if (i > 0)
+      out += "\n";
+    for (const auto& span : paras[i].spans)
+      out += span.text;
+  }
+  return out;
+}
+
+bool note_has_markup(const std::vector<NotePara>& paras)
+{
+  for (const auto& para : paras) {
+    if (para.bullet)
+      return true;
+    for (const auto& span : para.spans) {
+      if (span.bold || span.italic)
+        return true;
+    }
+  }
+  return false;
+}
+
+bool note_journal(const Note& n, Glib::Date& out)
+{
+  if (!n.journal.empty() && date_from_iso(n.journal, out))
+    return true;
+  return stamp_to_date(n.stamped, out);
+}
+
+Glib::ustring format_written_date(const Glib::Date& d)
+{
+  if (!d.valid())
+    return {};
+  return Glib::ustring::compose("%1 %2 %3", static_cast<int>(d.get_day()),
+                                month_name(static_cast<int>(d.get_month())),
+                                static_cast<int>(d.get_year()));
+}
+
+Glib::ustring format_written_stamp(const std::string& stamped)
+{
+  Glib::Date d;
+  if (!stamp_to_date(stamped, d))
+    return stamped;
+  Glib::ustring out = format_written_date(d);
+  if (stamped.size() >= 16 && stamped[10] == ' ')
+    out += ", " + stamped.substr(11, 5);
+  return out;
+}
+
+bool parse_journal_text(const Glib::ustring& text, Glib::Date& out)
+{
+  Glib::ustring s = text;
+  const auto comma = s.find(',');
+  if (comma != Glib::ustring::npos)
+    s = s.substr(0, comma);
+  while (!s.empty() && (s[0] == ' ' || s[0] == '\t'))
+    s.erase(0, 1);
+  while (!s.empty() && (s[s.size() - 1] == ' ' || s[s.size() - 1] == '\t'))
+    s.erase(s.size() - 1, 1);
+  if (s.empty())
+    return false;
+  if (date_from_iso(s.raw(), out))
+    return true;
+  int day = 0;
+  int year = 0;
+  char month[32] = {};
+  if (std::sscanf(s.c_str(), "%d %31s %d", &day, month, &year) != 3)
+    return false;
+  const int m = month_from_name(month);
+  if (m < 1 || year < 1 || year > 9999)
+    return false;
+  const auto gday = static_cast<Glib::Date::Day>(day);
+  const auto gmonth = static_cast<Glib::Date::Month>(m);
+  const auto gyear = static_cast<Glib::Date::Year>(year);
+  if (!Glib::Date::valid_dmy(gday, gmonth, gyear))
+    return false;
+  out.set_dmy(gday, gmonth, gyear);
+  return out.valid();
+}
+
 Glib::ustring format_hm(int mins)
 {
   if (mins < 0)
@@ -509,6 +793,7 @@ void Binder::close()
   contacts_.clear();
   planner_.clear();
   default_planner_keys(planner_keys_);
+  note_categories_.clear();
   notes_.clear();
   next_note_id_ = 1;
   path_.clear();
@@ -935,26 +1220,142 @@ int Binder::add_note(const Note& n)
   x.id = next_note_id_++;
   if (x.stamped.empty())
     x.stamped = now_stamp();
+  sync_note_text(x);
+  ensure_journal(x);
   notes_.push_back(x);
   dirty_ = true;
+  if (!x.category.empty())
+    add_note_category(x.category);
   return x.id;
+}
+
+std::vector<Note> Binder::notes_on(const Glib::Date& date) const
+{
+  std::vector<Note> out;
+  if (!date.valid())
+    return out;
+  for (const auto& n : notes_) {
+    Glib::Date d;
+    if (note_journal(n, d) && d.valid() && d.get_julian() == date.get_julian())
+      out.push_back(n);
+  }
+  std::sort(out.begin(), out.end(), [](const Note& a, const Note& b) {
+    if (a.stamped != b.stamped)
+      return a.stamped > b.stamped;
+    return a.id > b.id;
+  });
+  return out;
+}
+
+std::set<int> Binder::note_days_in_month(Glib::Date::Month month, Glib::Date::Year year) const
+{
+  std::set<int> days;
+  for (const auto& n : notes_) {
+    Glib::Date d;
+    if (!note_journal(n, d) || !d.valid())
+      continue;
+    if (d.get_month() == month && d.get_year() == year)
+      days.insert(d.get_day());
+  }
+  return days;
 }
 
 std::vector<Glib::ustring> Binder::note_categories() const
 {
-  std::set<Glib::ustring> names;
+  std::vector<Glib::ustring> out = note_categories_;
   for (const auto& n : notes_) {
-    if (!n.category.empty())
-      names.insert(n.category);
+    if (!n.category.empty() && !has_category(out, n.category))
+      out.push_back(n.category);
   }
-  return {names.begin(), names.end()};
+  return out;
+}
+
+bool Binder::add_note_category(const Glib::ustring& name)
+{
+  if (name.empty())
+    return false;
+  if (!open_)
+    create_new();
+  if (has_category(note_categories_, name))
+    return false;
+  note_categories_.push_back(name);
+  dirty_ = true;
+  return true;
+}
+
+bool Binder::rename_note_category(const Glib::ustring& from, const Glib::ustring& to)
+{
+  if (!open_ || from.empty() || to.empty() || from == to)
+    return false;
+  bool on_note = false;
+  for (const auto& n : notes_) {
+    if (n.category == from) {
+      on_note = true;
+      break;
+    }
+  }
+  if (!has_category(note_categories_, from) && !on_note)
+    return false;
+  bool has_to = has_category(note_categories_, to);
+  for (const auto& n : notes_) {
+    if (n.category == to)
+      has_to = true;
+  }
+  bool replaced = false;
+  for (auto it = note_categories_.begin(); it != note_categories_.end();) {
+    if (*it != from) {
+      ++it;
+      continue;
+    }
+    if (!has_to && !replaced) {
+      *it = to;
+      replaced = true;
+      ++it;
+    } else {
+      it = note_categories_.erase(it);
+    }
+  }
+  if (!has_to && !replaced)
+    note_categories_.push_back(to);
+  for (auto& n : notes_) {
+    if (n.category == from)
+      n.category = to;
+  }
+  dirty_ = true;
+  return true;
+}
+
+bool Binder::remove_note_category(const Glib::ustring& name)
+{
+  if (!open_ || name.empty())
+    return false;
+  const auto before = note_categories_.size();
+  note_categories_.erase(std::remove_if(note_categories_.begin(), note_categories_.end(),
+                                        [&](const Glib::ustring& c) { return c == name; }),
+                         note_categories_.end());
+  bool cleared = false;
+  for (auto& n : notes_) {
+    if (n.category == name) {
+      n.category.clear();
+      cleared = true;
+    }
+  }
+  if (note_categories_.size() == before && !cleared)
+    return false;
+  dirty_ = true;
+  return true;
 }
 
 bool Binder::update_note(const Note& n)
 {
   for (auto& x : notes_) {
     if (x.id == n.id) {
-      x = n;
+      Note next = n;
+      if (next.stamped.empty())
+        next.stamped = x.stamped;
+      sync_note_text(next);
+      ensure_journal(next);
+      x = next;
       dirty_ = true;
       return true;
     }
@@ -1028,10 +1429,18 @@ bool Binder::write_file(const std::string& path) const
        << date_iso(p.end) << "\" category=\"" << p.category << "\">" << xml_escape(p.text)
        << "</planner>\n";
   }
+  for (const auto& c : note_categories_) {
+    os << "  <note-category>" << xml_escape(c) << "</note-category>\n";
+  }
   for (const auto& n : notes_) {
     os << "  <note id=\"" << n.id << "\" title=\"" << xml_escape_attr(n.title) << "\" stamped=\""
-       << xml_escape_attr(n.stamped) << "\" colour=\"" << colour_attr(n.colour) << "\" category=\""
-       << xml_escape_attr(n.category) << "\">" << xml_escape(n.body) << "</note>\n";
+       << xml_escape_attr(n.stamped) << "\"";
+    if (!n.journal.empty())
+      os << " journal=\"" << xml_escape_attr(n.journal) << "\"";
+    os << " colour=\"" << colour_attr(n.colour) << "\" category=\"" << xml_escape_attr(n.category)
+       << "\">";
+    write_note_contents(os, n);
+    os << "</note>\n";
   }
   for (const auto& t : todos_) {
     os << "  <todo id=\"" << t.id << "\" done=\"" << (t.done ? "true" : "false") << "\" priority=\""
@@ -1118,6 +1527,7 @@ bool Binder::open(const std::string& path)
   std::vector<Contact> loaded_contacts;
   std::vector<PlannerEvent> loaded_planner;
   std::vector<Note> loaded_notes;
+  std::vector<Glib::ustring> loaded_cats;
   int max_note = 0;
   std::array<Glib::ustring, kPlannerKeyCount> loaded_keys;
   default_planner_keys(loaded_keys);
@@ -1203,8 +1613,12 @@ bool Binder::open(const std::string& path)
       const int idx = static_cast<int>(g_ascii_strtoll(node_prop(n, "index").c_str(), nullptr, 10));
       if (idx >= 0 && idx < kPlannerKeyCount) {
         Glib::ustring name = node_text(n);
-        if (!name.empty())
+        if (!name.empty()) {
+          // 1.0 called this key Streaming. The year planner label is Projects.
+          if (idx == 3 && name == "Streaming")
+            name = "Projects";
           loaded_keys[static_cast<size_t>(idx)] = std::move(name);
+        }
       }
     } else if (node_name(n) == "planner") {
       PlannerEvent p;
@@ -1222,6 +1636,10 @@ bool Binder::open(const std::string& path)
       if (p.id > max_planner)
         max_planner = p.id;
       loaded_planner.push_back(std::move(p));
+    } else if (node_name(n) == "note-category") {
+      Glib::ustring name = node_text(n);
+      if (!name.empty() && !has_category(loaded_cats, name))
+        loaded_cats.push_back(std::move(name));
     } else if (node_name(n) == "note") {
       Note note;
       const std::string id_s = node_prop(n, "id");
@@ -1229,9 +1647,13 @@ bool Binder::open(const std::string& path)
         note.id = static_cast<int>(g_ascii_strtoll(id_s.c_str(), nullptr, 10));
       note.title = node_prop(n, "title");
       note.stamped = node_prop(n, "stamped");
+      const std::string journal = node_prop(n, "journal");
+      Glib::Date jd;
+      if (!journal.empty() && date_from_iso(journal, jd))
+        note.journal = date_iso(jd);
       note.colour = parse_colour(node_prop(n, "colour"));
       note.category = node_prop(n, "category");
-      note.body = node_text(n);
+      read_note_body(n, note);
       if (note.id > max_note)
         max_note = note.id;
       loaded_notes.push_back(std::move(note));
@@ -1262,8 +1684,13 @@ bool Binder::open(const std::string& path)
     if (n.id < 1)
       n.id = ++max_note;
   }
+  for (const auto& n : loaded_notes) {
+    if (!n.category.empty() && !has_category(loaded_cats, n.category))
+      loaded_cats.push_back(n.category);
+  }
   planner_ = std::move(loaded_planner);
   planner_keys_ = std::move(loaded_keys);
+  note_categories_ = std::move(loaded_cats);
   notes_ = std::move(loaded_notes);
   path_ = path;
   next_id_ = max_id + 1;

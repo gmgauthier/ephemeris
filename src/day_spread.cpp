@@ -123,6 +123,38 @@ Gtk::Widget* DaySpread::build_day(const Glib::Date& date, bool right)
   head->get_style_context()->add_class("ephemeris-month-head");
   col->pack_start(*head, Gtk::PACK_SHRINK);
 
+  if (binder_) {
+    const auto notes = binder_->notes_on(date);
+    if (!notes.empty()) {
+      auto* block = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL, 2));
+      block->get_style_context()->add_class("ephemeris-note-block");
+      auto* title = Gtk::manage(new Gtk::Label());
+      title->set_markup("<b>Notes</b>");
+      title->set_halign(Gtk::ALIGN_START);
+      block->pack_start(*title, Gtk::PACK_SHRINK);
+      for (const auto& n : notes) {
+        auto* ev = Gtk::manage(new Gtk::EventBox());
+        ev->set_visible_window(true);
+        ev->get_style_context()->add_class("ephemeris-note-row");
+        const Glib::ustring label = n.title.empty() ? Glib::ustring("(untitled)") : n.title;
+        auto* lab = Gtk::manage(new Gtk::Label(label));
+        lab->set_xalign(0.0);
+        lab->set_ellipsize(Pango::ELLIPSIZE_END);
+        ev->add(*lab);
+        const int id = n.id;
+        ev->add_events(Gdk::BUTTON_PRESS_MASK);
+        ev->signal_button_press_event().connect([this, id](GdkEventButton* e) {
+          if (!e || e->button != 1)
+            return false;
+          signal_open_note_.emit(id);
+          return true;
+        });
+        block->pack_start(*ev, Gtk::PACK_SHRINK);
+      }
+      col->pack_start(*block, Gtk::PACK_SHRINK);
+    }
+  }
+
   auto* scroll = Gtk::manage(new Gtk::ScrolledWindow());
   scroll->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
   auto* list = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL, 0));

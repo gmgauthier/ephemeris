@@ -88,15 +88,31 @@ void MonthPage::set_marks(std::set<int> days, std::map<int, Glib::ustring> tips)
   rebuild();
 }
 
-Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today, bool busy,
+void MonthPage::set_note_days(std::set<int> days)
+{
+  note_days_ = std::move(days);
+  rebuild();
+}
+
+Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today, bool busy, bool noted,
                                  const Glib::ustring& tip)
 {
   auto* ev = Gtk::manage(new Gtk::EventBox());
   ev->set_visible_window(true);
+  auto* overlay = Gtk::manage(new Gtk::Overlay());
   auto* lab = Gtk::manage(new Gtk::Label(day > 0 ? Glib::ustring::format(day) : Glib::ustring()));
   lab->set_xalign(1.0);
   lab->set_yalign(0.0);
-  ev->add(*lab);
+  overlay->add(*lab);
+  // The day number is top-right. The journal dot sits in the opposite corner.
+  if (noted && in_month) {
+    auto* dot = Gtk::manage(new Gtk::Label("●"));
+    dot->set_halign(Gtk::ALIGN_START);
+    dot->set_valign(Gtk::ALIGN_START);
+    dot->get_style_context()->add_class("ephemeris-note-dot");
+    overlay->add_overlay(*dot);
+  }
+  ev->add(*overlay);
   ev->get_style_context()->add_class("ephemeris-day");
   if (!in_month)
     ev->get_style_context()->add_class("ephemeris-day-out");
@@ -108,7 +124,7 @@ Gtk::Widget* MonthPage::make_day(int day, bool in_month, bool is_today, bool bus
     ev->get_style_context()->add_class("ephemeris-day-busy");
     lab->get_style_context()->add_class("ephemeris-day-busy");
   }
-  if (in_month && day > 0 && busy && !tip.empty())
+  if (in_month && day > 0 && !tip.empty())
     ev->set_tooltip_text(tip);
   if (in_month && day > 0) {
     const int d = day;
@@ -153,13 +169,12 @@ void MonthPage::rebuild()
       const int d = cursor.get_day();
       const bool is_today = this_month && in_month && d == today_d;
       const bool busy = in_month && marks_.count(d) > 0;
+      const bool noted = in_month && note_days_.count(d) > 0;
       Glib::ustring tip;
-      if (busy) {
-        auto it = tips_.find(d);
-        if (it != tips_.end())
-          tip = it->second;
-      }
-      auto* w = make_day(d, in_month, is_today, busy, tip);
+      auto it = tips_.find(d);
+      if (in_month && it != tips_.end())
+        tip = it->second;
+      auto* w = make_day(d, in_month, is_today, busy, noted, tip);
       grid_.attach(*w, col, row + 1, 1, 1);
       cursor.add_days(1);
     }

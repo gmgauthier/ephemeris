@@ -34,6 +34,10 @@ class DaySpread : public Gtk::Box {
   {
     return signal_goto_todo_;
   }
+  sigc::signal<void, int>& signal_open_note()
+  {
+    return signal_open_note_;
+  }
 
  private:
   Gtk::Widget* build_day(const Glib::Date& date, bool right);
@@ -46,6 +50,7 @@ class DaySpread : public Gtk::Box {
   Gtk::Box cols_{Gtk::ORIENTATION_HORIZONTAL, 16};
   sigc::signal<void> signal_changed_;
   sigc::signal<void> signal_goto_todo_;
+  sigc::signal<void, int> signal_open_note_;
 };
 
 /* One clickable row of the 08:00–18:00 grid. index is into the appointment

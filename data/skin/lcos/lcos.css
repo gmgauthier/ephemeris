@@ -56,6 +56,31 @@ window.ephemeris-window {
   border-bottom: 4px solid #E8F2FF;
 }
 
+.ephemeris-note-dot {
+  color: #1B4D3E;
+  font-size: 8px;
+  font-weight: normal;
+  background-color: transparent;
+}
+
+.ephemeris-day-today label.ephemeris-note-dot {
+  color: #FFFFFF;
+  background-color: transparent;
+  font-weight: normal;
+}
+
+.ephemeris-note-block {
+  padding-bottom: 4px;
+}
+
+.ephemeris-note-row {
+  padding: 2px 4px;
+}
+
+.ephemeris-note-row:hover {
+  background-color: #E8E4D8;
+}
+
 .ephemeris-day-col-right {
   border-left: 1px solid #C4C0B4;
   padding-left: 12px;
@@ -206,6 +231,50 @@ window.ephemeris-window {
 .ephemeris-note-chip-green { background-color: #B7E0A8; }
 .ephemeris-note-chip-pink { background-color: #F4B6C8; }
 .ephemeris-note-chip-white { background-color: #F7F5EF; }
+
+scrolledwindow.ephemeris-note-paper {
+  border: 1px solid #C4C0B4;
+}
+
+.ephemeris-page scrolledwindow.ephemeris-note-paper-yellow,
+.ephemeris-page scrolledwindow.ephemeris-note-paper-yellow viewport,
+.ephemeris-page textview.ephemeris-note-paper-yellow,
+.ephemeris-page textview.ephemeris-note-paper-yellow text {
+  background-color: #FFF2A8;
+  color: #1A1A1A;
+}
+
+.ephemeris-page scrolledwindow.ephemeris-note-paper-blue,
+.ephemeris-page scrolledwindow.ephemeris-note-paper-blue viewport,
+.ephemeris-page textview.ephemeris-note-paper-blue,
+.ephemeris-page textview.ephemeris-note-paper-blue text {
+  background-color: #A8D4FF;
+  color: #1A1A1A;
+}
+
+.ephemeris-page scrolledwindow.ephemeris-note-paper-green,
+.ephemeris-page scrolledwindow.ephemeris-note-paper-green viewport,
+.ephemeris-page textview.ephemeris-note-paper-green,
+.ephemeris-page textview.ephemeris-note-paper-green text {
+  background-color: #B7E0A8;
+  color: #1A1A1A;
+}
+
+.ephemeris-page scrolledwindow.ephemeris-note-paper-pink,
+.ephemeris-page scrolledwindow.ephemeris-note-paper-pink viewport,
+.ephemeris-page textview.ephemeris-note-paper-pink,
+.ephemeris-page textview.ephemeris-note-paper-pink text {
+  background-color: #F4B6C8;
+  color: #1A1A1A;
+}
+
+.ephemeris-page scrolledwindow.ephemeris-note-paper-white,
+.ephemeris-page scrolledwindow.ephemeris-note-paper-white viewport,
+.ephemeris-page textview.ephemeris-note-paper-white,
+.ephemeris-page textview.ephemeris-note-paper-white text {
+  background-color: #F7F5EF;
+  color: #1A1A1A;
+}
 
 .ephemeris-todo-line {
   color: #1A1A1A;
