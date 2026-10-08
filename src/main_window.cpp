@@ -128,6 +128,10 @@ MainWindow::MainWindow()
   notepad_.signal_changed().connect(sigc::mem_fun(*this, &MainWindow::on_binder_changed));
   spread_.signal_goto_todo().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::show_section), Section::todo));
+  spread_.signal_open_note().connect([this](int id) {
+    show_section(Section::notepad);
+    notepad_.show_note(id);
+  });
 
   pages_.add(month_, "month");
   pages_.add(spread_, "spread");
@@ -338,8 +342,11 @@ void MainWindow::refresh_marks()
   auto days = binder_.days_in_month(month_.month(), month_.year());
   const auto extra = remotes_.days_in_month(month_.month(), month_.year());
   days.insert(extra.begin(), extra.end());
+  const auto note_days = binder_.note_days_in_month(month_.month(), month_.year());
+  std::set<int> shown = days;
+  shown.insert(note_days.begin(), note_days.end());
   std::map<int, Glib::ustring> tips;
-  for (int d : days) {
+  for (int d : shown) {
     Glib::Date date(static_cast<Glib::Date::Day>(d), month_.month(), month_.year());
     Glib::ustring tip;
     int n = 0;
@@ -366,9 +373,14 @@ void MainWindow::refresh_marks()
     }
     for (const auto& t : binder_.todos_due_on(date))
       add_line(Glib::ustring("To Do: ") + t.text);
+    for (const auto& note : binder_.notes_on(date)) {
+      const Glib::ustring title = note.title.empty() ? Glib::ustring("(untitled)") : note.title;
+      add_line(Glib::ustring("Note: ") + title);
+    }
     if (!tip.empty())
       tips[d] = std::move(tip);
   }
+  month_.set_note_days(note_days);
   month_.set_marks(std::move(days), std::move(tips));
 }
 

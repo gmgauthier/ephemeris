@@ -19,6 +19,7 @@ class MonthPage : public Gtk::Box {
   void prev_month();
   void next_month();
   void set_marks(std::set<int> days, std::map<int, Glib::ustring> tips = {});
+  void set_note_days(std::set<int> days);
   Glib::Date::Month month() const
   {
     return month_;
@@ -36,13 +37,15 @@ class MonthPage : public Gtk::Box {
 
  private:
   void rebuild();
-  Gtk::Widget* make_day(int day, bool in_month, bool is_today, bool busy, const Glib::ustring& tip);
+  Gtk::Widget* make_day(int day, bool in_month, bool is_today, bool busy, bool noted,
+                        const Glib::ustring& tip);
 
   Gtk::Label head_;
   Gtk::Grid grid_;
   Glib::Date::Month month_ = Glib::Date::JANUARY;
   Glib::Date::Year year_ = 2026;
   std::set<int> marks_;
+  std::set<int> note_days_;
   std::map<int, Glib::ustring> tips_;
   sigc::signal<void, Glib::Date> signal_day_chosen_;
 };

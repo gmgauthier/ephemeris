@@ -43,12 +43,25 @@ struct PlannerEvent {
   Glib::ustring text;
 };
 
+struct NoteSpan {
+  Glib::ustring text;
+  bool bold = false;
+  bool italic = false;
+};
+
+struct NotePara {
+  bool bullet = false;
+  std::vector<NoteSpan> spans;
+};
+
 struct Note {
   int id = 0;
   Glib::ustring title;
   Glib::ustring body;
+  std::vector<NotePara> paras;
   std::string stamped;
-  NoteColour colour = NoteColour::yellow;
+  std::string journal;
+  NoteColour colour = NoteColour::white;
   Glib::ustring category;
 };
 
@@ -141,11 +154,16 @@ class Binder {
   void set_planner_key(int index, const Glib::ustring& name);
 
   std::vector<Note> notes() const;
+  std::vector<Note> notes_on(const Glib::Date& date) const;
+  std::set<int> note_days_in_month(Glib::Date::Month month, Glib::Date::Year year) const;
   int add_note(const Note& n);
   bool update_note(const Note& n);
   bool remove_note(int id);
   const Note* find_note(int id) const;
   std::vector<Glib::ustring> note_categories() const;
+  bool add_note_category(const Glib::ustring& name);
+  bool rename_note_category(const Glib::ustring& from, const Glib::ustring& to);
+  bool remove_note_category(const Glib::ustring& name);
 
   std::vector<Todo> todos() const;
   std::vector<Todo> todos_due_on(const Glib::Date& date) const;
@@ -171,6 +189,7 @@ class Binder {
   std::vector<Contact> contacts_;
   std::vector<PlannerEvent> planner_;
   std::array<Glib::ustring, kPlannerKeyCount> planner_keys_{};
+  std::vector<Glib::ustring> note_categories_;
   std::vector<Note> notes_;
   int next_note_id_ = 1;
   std::string path_;
@@ -205,5 +224,11 @@ bool stamp_to_date(const std::string& stamped, Glib::Date& out);
 bool in_last_days(const Glib::Date& stamped, const Glib::Date& today, int days);
 const char* planner_color(int category);
 std::string now_stamp();
+bool note_journal(const Note& n, Glib::Date& out);
+Glib::ustring note_plain(const std::vector<NotePara>& paras);
+bool note_has_markup(const std::vector<NotePara>& paras);
+Glib::ustring format_written_date(const Glib::Date& d);
+Glib::ustring format_written_stamp(const std::string& stamped);
+bool parse_journal_text(const Glib::ustring& text, Glib::Date& out);
 
 }  // namespace ephemeris

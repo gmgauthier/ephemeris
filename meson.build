@@ -271,3 +271,12 @@ ephemeris_week_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('week', ephemeris_week_tests)
+
+ephemeris_notes_tests = executable(
+  'ephemeris-notes-tests',
+  'tests/test_notes.cpp',
+  'src/binder.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('notes', ephemeris_notes_tests)
